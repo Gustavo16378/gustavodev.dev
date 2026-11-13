@@ -30,11 +30,24 @@ for (const { nome, sel } of PALCOS) {
       }
 
       // Gesto logo depois da última troca: era aqui que precisava arrastar duas vezes.
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(phone ? 250 : 500)
       await gesto(page, cdp, phone, 1)
       await expect.poll(() => p.preso(), { message: 'um gesto basta pra sair do último passo' }).toBe(false)
       await expect.poll(() => p.topo(), { message: 'a página seguiu pra baixo' }).toBeLessThan(-50)
       expect(erros).toEqual([])
+    })
+
+    test('no celular, dois arrastos rápidos andam dois passos', async ({ page }, info) => {
+      test.skip(!isPhone(info), 'só no celular')
+      await abrir(page)
+      const cdp = await page.context().newCDPSession(page)
+      const p = palco(page, sel)
+      await chegarNoPalco(page, cdp, true, sel)
+      await page.waitForTimeout(1300)
+      await gesto(page, cdp, true, 1)
+      await page.waitForTimeout(150)
+      await gesto(page, cdp, true, 1)
+      await expect.poll(() => p.passo(), { timeout: 5000 }).toBe(2)
     })
 
     test('um gesto longo de trackpad não pula dois passos', async ({ page }, info) => {
