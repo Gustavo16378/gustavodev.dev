@@ -100,7 +100,7 @@ export function useProjectsStage(
         const r = el.getBoundingClientRect()
         return { top: r.top - stageTop, bottom: r.bottom - stageTop }
       })
-      comps = projects.map((p, i) => compose(p.id, vw, vh, desktop, boxes[i]))
+      comps = projects.map((p, i) => compose(p.layout, vw, vh, desktop, boxes[i]))
       comps.forEach((c, i) => {
         if (c.textTop === undefined) return
         els.texts[i].style.top = `${Math.round(c.textTop)}px`

@@ -5,11 +5,11 @@ import type { Project } from '../data/projects'
 interface PlaqueProps {
   project: Project
   onSheet: () => void
-  /** Só nome e links, sobre o print (Monte Vinhedo). */
+  /** Só nome e links, sobre o print (composição vitrine). */
   overlay?: boolean
   /** Sombra no texto pra ler por cima do print. */
   shadow?: boolean
-  /** Centralizado (Torra). */
+  /** Centralizado (composição celular). */
   center?: boolean
   /** Só com mídia em vídeo e aparelho que mostra poster: botão pra tocar mesmo assim. */
   onMotion?: () => void

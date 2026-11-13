@@ -30,7 +30,7 @@ export function ProjectRail({ current, total, visible }: ProjectRailProps) {
   }, [current, total])
 
   // No celular o trilho fica na metade de baixo, ao lado do texto: centralizado, ele caía sobre a borda dos prints
-  // largos (Stewer e AUTORIA). No desktop continua no meio da tela.
+  // largos (frame-direita e frame-esquerda). No desktop continua no meio da tela.
   return (
     <div
       ref={railRef}

@@ -1,4 +1,4 @@
-import type { ProjectId } from '../data/projects'
+import type { LayoutKind } from '../data/projects'
 
 /** Centro, largura e rotação de um frame, em px da tela. */
 export interface FrameRect {
@@ -53,28 +53,28 @@ export interface TextBox {
   bottom: number
 }
 
-function desktop(id: ProjectId, vw: number, vh: number, text?: TextBox): Composition {
+function desktop(id: LayoutKind, vw: number, vh: number, text?: TextBox): Composition {
   const fit = (shareW: number, shareH: number) => Math.min(vw * shareW, vh * shareH * DESK_RATIO)
   switch (id) {
-    case 'stewer': {
+    case 'frame-direita': {
       // Texto à esquerda, frame à direita.
       const w = fit(0.62, 0.7)
       const desk = { cx: vw * 0.96 - w / 2, cy: vh * 0.5, w, rot: 0 }
       return { desk, mob: cornerOutside(desk), deskOn: true, mobOn: true, hero: 'desktop' }
     }
-    case 'autoria': {
+    case 'frame-esquerda': {
       // Frame à esquerda, mais largo; texto à direita.
       const w = fit(0.64, 0.72)
       const desk = { cx: vw * 0.05 + w / 2, cy: vh * 0.5, w, rot: 0 }
       return { desk, mob: cornerOutside(desk, 0.15), deskOn: true, mobOn: true, hero: 'desktop' }
     }
-    case 'monte-vinhedo': {
+    case 'vitrine': {
       // Frame gigante no centro, quase a tela toda (sem entrar na faixa do HUD).
       const w = fit(0.9, 0.74)
       const desk = { cx: vw * 0.5, cy: vh * 0.5, w, rot: 0 }
       return { desk, mob: cornerInside(desk), deskOn: true, mobOn: true, hero: 'desktop' }
     }
-    case 'torra': {
+    case 'celular': {
       // O celular é o protagonista, grande no centro; o desktop atrás, menor e inclinado.
       // Altura: do fim da faixa do HUD até logo acima do texto (medido).
       const room = (text ? text.top - GAP : vh * 0.66) - HUD_TOP.desktop
@@ -84,7 +84,7 @@ function desktop(id: ProjectId, vw: number, vh: number, text?: TextBox): Composi
       const desk = { cx: vw * 0.5, cy, w: Math.min(fit(0.44, 0.46), mh * 1.25), rot: 6 }
       return { desk, mob, deskOn: true, mobOn: true, hero: 'mobile' }
     }
-    case 'cleane': {
+    case 'metade': {
       // Metade e metade: frame à esquerda, texto à direita.
       const w = fit(0.44, 0.72)
       const desk = { cx: vw * 0.27, cy: vh * 0.5, w, rot: 0 }
@@ -98,7 +98,7 @@ function desktop(id: ProjectId, vw: number, vh: number, text?: TextBox): Composi
  * inteiro entre as faixas do HUD, sem espaço morto: o bloco é centralizado na área livre e o texto é
  * posicionado junto com o print (textTop), a partir da altura medida dele.
  */
-function mobile(id: ProjectId, vw: number, vh: number, text?: TextBox): Composition {
+function mobile(id: LayoutKind, vw: number, vh: number, text?: TextBox): Composition {
   const deskH = (w: number) => w / DESK_RATIO
   const textH = text ? text.bottom - text.top : vh * 0.3
   const top = HUD_TOP.mobile
@@ -108,34 +108,34 @@ function mobile(id: ProjectId, vw: number, vh: number, text?: TextBox): Composit
   const hidden = (w: number) => parked(vw, vh, w)
 
   switch (id) {
-    case 'stewer': {
+    case 'frame-direita': {
       // Print desktop em cima, texto logo abaixo.
       const w = Math.min(vw * 0.92, (free - textH - GAP * 1.5) * DESK_RATIO)
       const y = start(deskH(w) + GAP * 1.5 + textH)
       const desk = { cx: vw * 0.04 + w / 2, cy: y + deskH(w) / 2, w, rot: 0 }
       return { desk, mob: hidden(vw * 0.3), deskOn: true, mobOn: false, hero: 'desktop', textTop: y + deskH(w) + GAP * 1.5 }
     }
-    case 'autoria': {
+    case 'frame-esquerda': {
       // Print desktop grande, texto logo abaixo.
       const w = vw * 0.88
       const y = start(deskH(w) + GAP + textH)
       const desk = { cx: vw / 2, cy: y + deskH(w) / 2, w, rot: 0 }
       return { desk, mob: hidden(vw * 0.3), deskOn: true, mobOn: false, hero: 'desktop', textTop: y + deskH(w) + GAP }
     }
-    case 'monte-vinhedo': {
+    case 'vitrine': {
       // Print do celular (proporção da tela) ocupando a área livre, nome e links sobrepostos embaixo.
       const w = Math.min(vw * 0.84, free * MOB_RATIO)
       const mob = { cx: vw / 2, cy: top + free / 2, w, rot: 0 }
       return { desk: hidden(vw * 0.5), mob, deskOn: false, mobOn: true, hero: 'mobile' }
     }
-    case 'torra': {
+    case 'celular': {
       // Print do celular grande no centro, texto embaixo.
       const h = Math.min(vh * 0.56, free - textH - GAP * 1.5)
       const y = start(h + GAP * 1.5 + textH)
       const mob = { cx: vw / 2, cy: y + h / 2, w: h * MOB_RATIO, rot: 0 }
       return { desk: hidden(vw * 0.5), mob, deskOn: false, mobOn: true, hero: 'mobile', textTop: y + h + GAP * 1.5 }
     }
-    case 'cleane': {
+    case 'metade': {
       // Texto em cima, print logo abaixo dos botões; o bloco inteiro centralizado na área livre, dentro da tela.
       const w = Math.min(vw * 0.84, (free - textH - GAP * 1.5) * DESK_RATIO)
       const y = start(textH + GAP * 1.5 + deskH(w))
@@ -146,19 +146,19 @@ function mobile(id: ProjectId, vw: number, vh: number, text?: TextBox): Composit
   }
 }
 
-export function compose(id: ProjectId, vw: number, vh: number, isDesktop: boolean, text?: TextBox): Composition {
+export function compose(id: LayoutKind, vw: number, vh: number, isDesktop: boolean, text?: TextBox): Composition {
   return isDesktop ? desktop(id, vw, vh, text) : mobile(id, vw, vh, text)
 }
 
 /** Qual frame tem o vídeo. No mobile os vídeos desktop nunca carregam. */
-export function heroOf(id: ProjectId, isDesktop: boolean): Composition['hero'] {
-  if (isDesktop) return id === 'torra' ? 'mobile' : 'desktop'
+export function heroOf(id: LayoutKind, isDesktop: boolean): Composition['hero'] {
+  if (isDesktop) return id === 'celular' ? 'mobile' : 'desktop'
   return 'mobile'
 }
 
 /** Como o texto de cada projeto aparece e onde fica. */
 export interface TextLayout {
-  /** Só nome e links, sobre o print (Monte Vinhedo). */
+  /** Só nome e links, sobre o print (vitrine). */
   overlay: { mobile: boolean; desktop: boolean }
   /** Sombra pra ler por cima do print. */
   shadow: { mobile: boolean; desktop: boolean }
@@ -168,8 +168,8 @@ export interface TextLayout {
   name: string
 }
 
-export const TEXT_LAYOUT: Record<ProjectId, TextLayout> = {
-  stewer: {
+export const TEXT_LAYOUT: Record<LayoutKind, TextLayout> = {
+  'frame-direita': {
     overlay: { mobile: false, desktop: false },
     shadow: { mobile: false, desktop: false },
     center: false,
@@ -178,7 +178,7 @@ export const TEXT_LAYOUT: Record<ProjectId, TextLayout> = {
       'inset-x-0 top-[calc(14svh+52.5vw+5svh)] px-4 pl-12 md:top-1/2 md:bottom-auto md:left-0 md:w-[30vw] md:-translate-y-1/2 md:pl-24',
     name: 'top-[28%] md:top-[76%]',
   },
-  autoria: {
+  'frame-esquerda': {
     overlay: { mobile: false, desktop: false },
     shadow: { mobile: false, desktop: false },
     center: false,
@@ -186,7 +186,7 @@ export const TEXT_LAYOUT: Record<ProjectId, TextLayout> = {
       'inset-x-0 top-[calc(36svh+18vw)] px-4 pl-10 md:top-1/2 md:right-[3vw] md:left-auto md:w-[23vw] md:-translate-y-1/2 md:p-0',
     name: 'top-[20%] md:top-[76%]',
   },
-  'monte-vinhedo': {
+  vitrine: {
     overlay: { mobile: true, desktop: true },
     shadow: { mobile: true, desktop: true },
     center: false,
@@ -195,7 +195,7 @@ export const TEXT_LAYOUT: Record<ProjectId, TextLayout> = {
       'bottom-[calc(64px+4svh)] left-[calc(50vw-min(84vw,(100svh-148px)*0.462)/2+4vw)] right-[calc(50vw-min(84vw,(100svh-148px)*0.462)/2+4vw)] md:top-auto md:right-auto md:bottom-[calc(50svh-min(90vw,118.4svh)*0.3125+3.5svh)] md:left-[calc((100vw-min(90vw,118.4svh))/2+2.4vw)] md:w-auto',
     name: 'top-[50%] md:top-[76%]',
   },
-  torra: {
+  celular: {
     overlay: { mobile: false, desktop: false },
     shadow: { mobile: false, desktop: false },
     center: true,
@@ -203,7 +203,7 @@ export const TEXT_LAYOUT: Record<ProjectId, TextLayout> = {
       'inset-x-0 bottom-[4svh] px-6 text-center md:right-auto md:bottom-[72px] md:left-1/2 md:w-[44vw] md:-translate-x-1/2 md:p-0',
     name: 'top-[36%] md:top-[36%]',
   },
-  cleane: {
+  metade: {
     overlay: { mobile: false, desktop: false },
     shadow: { mobile: false, desktop: false },
     center: false,

@@ -1,4 +1,11 @@
-export type ProjectId = 'stewer' | 'autoria' | 'monte-vinhedo' | 'torra' | 'cleane'
+export type ProjectId = 'stewer' | 'arte-de-amar' | 'capi' | 'torra' | 'cleane'
+
+/**
+ * Composição do projeto no palco (ver projectLayout.ts):
+ * frame-direita (texto à esquerda), frame-esquerda (texto à direita), vitrine (frame gigante, nome por cima),
+ * celular (o celular é o protagonista, desktop atrás inclinado) e metade (frame e texto meio a meio).
+ */
+export type LayoutKind = 'frame-direita' | 'frame-esquerda' | 'vitrine' | 'celular' | 'metade'
 
 export interface SiteVideo {
   /** Opcional: sem ele o navegador usa o MP4. */
@@ -40,7 +47,8 @@ export interface Project {
   id: ProjectId
   name: string
   year: number
-  kind: 'cliente' | 'conceito próprio'
+  kind: 'cliente' | 'conceito próprio' | 'projeto em grupo' | 'hackathon'
+  layout: LayoutKind
   /** Linha de contexto: cidade e quando foi entregue. */
   city: string
   delivered: string
@@ -95,18 +103,19 @@ const prints = (id: string): Project['prints'] => ({
 
 const github = { label: 'github', url: 'https://github.com/Gustavo16378' }
 
-// Ordem da seção 03: dourado, âmbar, vinho, laranja, verde.
+// Ordem da seção 03: dourado, verde, capim, laranja, sálvia (cores vizinhas nunca parecidas).
 export const projects: Project[] = [
   {
     id: 'stewer',
     name: 'Stewer Gabriel',
-    year: 2025,
+    year: 2026,
     kind: 'cliente',
+    layout: 'frame-direita',
     city: 'Palmas, TO',
-    delivered: 'entregue em 2025',
+    delivered: 'site em 2025, app em 2026',
     url: 'https://stewergabriel.com',
-    line: 'Site do visagista e consultor de imagem Stewer Gabriel.',
-    stack: ['react', 'typescript', 'tailwind', 'vite', 'cloudflare pages'],
+    line: 'Site com painel e app de agendamento do visagista Stewer Gabriel.',
+    stack: ['react', 'quarkus', 'postgresql', 'react native', 'cloudflare'],
     accent: 'var(--c-stewer)',
     background: 'var(--c-stewer-bg)',
     media: DEFAULT_MEDIA,
@@ -114,66 +123,68 @@ export const projects: Project[] = [
     videos: videos('stewer'),
     sheet: {
       architecture:
-        'Site estático em React e TypeScript, empacotado com Vite e publicado no Cloudflare Pages com domínio próprio (stewergabriel.com). O agendamento virou um projeto separado: a API em Quarkus com PostgreSQL e migrations em Flyway já está pronta; o app em React Native com Expo é a próxima etapa.',
+        'Duas partes no mesmo domínio. O site, em React, tem painel em /admin pra o Stewer mudar o conteúdo sozinho, com Cloudflare Pages Functions e D1. O agendamento é um sistema à parte: API em Quarkus com PostgreSQL e JWT, publicada no Render com banco no Neon, e o app em React Native com Expo, que também roda no navegador em agenda.stewergabriel.com.',
       decisions: [
-        'Site estático: abre rápido no celular e não tem servidor pra manter.',
-        'Tailwind com tokens de cor próprios, pra o dourado e o preto da marca serem os mesmos em todas as páginas.',
-        'Agendamento fora do site, num sistema próprio, pra o site continuar leve e o sistema crescer sem depender dele.',
+        'Agendamento fora do site, num sistema próprio: o site continua leve e o sistema cresce sem depender dele.',
+        'Tudo em plano gratuito: o ping que mantém a API acordada não toca no banco, então o Neon dorme quando ninguém usa.',
+        'Memória da JVM medida com carga, não chutada: a API roda com folga nos 512 MB do plano gratuito do Render.',
       ],
-      repo: github,
-      repoNote: 'código privado, projeto de cliente',
+      repo: { label: 'github', url: 'https://github.com/Gustavo16378/stewer-agenda-api' },
+      repoNote: 'API e app são públicos',
     },
   },
   {
-    id: 'autoria',
-    name: 'AUTORIA.',
+    id: 'arte-de-amar',
+    name: 'Arte de Amar',
     year: 2026,
-    kind: 'conceito próprio',
+    kind: 'projeto em grupo',
+    layout: 'frame-esquerda',
     city: 'Palmas, TO',
-    delivered: 'feito em 2026',
-    url: 'https://autoria-6kz.pages.dev',
-    line: 'Concessionária com as fotos dos carros tratadas por um pipeline automático.',
-    stack: ['react', 'typescript', 'playwright', 'rembg'],
-    accent: 'var(--c-autoria)',
-    background: 'var(--c-bg)',
+    delivered: 'entregue em 2026',
+    url: 'https://arte-de-amar-site.pages.dev',
+    line: 'Site e painel da ONG Arte de Amar, que atende crianças e famílias em Palmas desde 2015.',
+    stack: ['react', 'gsap', 'pages functions', 'cloudflare d1'],
+    accent: 'var(--c-arte)',
+    background: 'var(--c-arte-bg)',
     media: DEFAULT_MEDIA,
-    prints: prints('autoria'),
-    videos: videos('autoria'),
+    prints: prints('arte-de-amar'),
+    videos: videos('arte-de-amar'),
     sheet: {
       architecture:
-        'Front em React e TypeScript. Antes de entrar no site, as fotos passam por um pipeline: o Playwright coleta as imagens e o rembg remove o fundo de cada carro.',
+        'One page em React, Vite e GSAP, com um fio verde contínuo que acompanha a rolagem. O conteúdo vem de uma API em Cloudflare Pages Functions com banco D1, e a diretoria troca fotos, projetos e textos pelo painel em /admin, sem depender de programador. Projeto em grupo de cinco pessoas, em que fiquei com o desenvolvimento.',
       decisions: [
-        'Tratamento de imagem automatizado, pra atualizar o estoque sem abrir editor de foto.',
-        'Carro sem fundo, pra o layout controlar a composição de cada tela.',
-        'Imagens otimizadas e carregadas sob demanda, pra a página aguentar muitas fotos sem pesar.',
+        'Custo zero, porque é uma ONG: site, API, banco e painel no plano gratuito da Cloudflare, só o domínio é pago.',
+        'Painel próprio em vez de um CMS pronto: só os campos que a diretoria usa, sem nada pra aprender além disso.',
+        'Fotos da ONG desde 2015 otimizadas e carregadas sob demanda, pra a página abrir rápido no celular.',
       ],
-      repo: github,
+      repo: { label: 'github', url: 'https://github.com/Gustavo16378/arte-de-amar' },
     },
   },
   {
-    id: 'monte-vinhedo',
-    name: 'Monte Vinhedo',
+    id: 'capi',
+    name: 'Capi',
     year: 2026,
-    kind: 'conceito próprio',
+    kind: 'hackathon',
+    layout: 'celular',
     city: 'Palmas, TO',
-    delivered: 'feito em 2026',
-    url: 'https://monte-vinhedo.pages.dev',
-    line: 'Vinícola boutique de vinhos de altitude.',
-    stack: ['react', 'gsap', 'cloudflare pages'],
-    accent: 'var(--c-vinhedo)',
-    background: 'var(--c-vinhedo-bg)',
+    delivered: 'HackaRun 2026',
+    url: 'https://tyranitar-capim-dourado.pages.dev',
+    line: 'App do Capim Dourado Shopping que liga a busca no celular à loja física, com uma assistente de IA.',
+    stack: ['react', 'typescript', 'pages functions', 'cloudflare d1', 'gsap'],
+    accent: 'var(--c-capi)',
+    background: 'var(--c-capi-bg)',
     media: DEFAULT_MEDIA,
-    prints: prints('monte-vinhedo'),
-    videos: videos('monte-vinhedo'),
+    prints: prints('capi'),
+    videos: videos('capi'),
     sheet: {
       architecture:
-        'One page em React com animações em GSAP sincronizadas com a rolagem pelo ScrollTrigger, publicada no Cloudflare Pages.',
+        'PWA em React e TypeScript feito no HackaRun 2026, no tema da jornada de compra digital e física do shopping. A Capi, assistente de IA, acha o produto nas lojas a partir de texto, foto ou link, e o cliente reserva e retira na loja. Tem mapa interativo do shopping, carteira com níveis de fidelidade, painel do lojista e painel do shopping, com API em Cloudflare Pages Functions e D1. Equipe Tyranitar, de quatro pessoas: fiquei no design e no desenvolvimento.',
       decisions: [
-        'Animação presa à rolagem: avança e volta junto com a leitura.',
-        'Paleta curta em vinho e rosé, com cara de rótulo.',
-        'Imagens em WebP carregadas sob demanda, pra as seções pesadas não travarem o celular.',
+        'A arquitetura do site da ONG reaproveitada (Pages Functions e D1) pra ter tudo no ar em três dias.',
+        'Design system com animações em GSAP aplicado no front, que foi a tecnologia sorteada pra equipe.',
+        'Contas de demonstração de cliente, lojista e shopping, pra quem avalia testar os três lados sem cadastro.',
       ],
-      repo: github,
+      repo: { label: 'github', url: 'https://github.com/Gustavo16378/tyranitar-capim-dourado' },
     },
   },
   {
@@ -181,10 +192,11 @@ export const projects: Project[] = [
     name: 'TORRA',
     year: 2026,
     kind: 'conceito próprio',
+    layout: 'vitrine',
     city: 'Palmas, TO',
     delivered: 'feito em 2026',
     url: 'https://torra-cafe.pages.dev',
-    line: 'Cafeteria de torra própria, com cardápio completo e mapa da loja.',
+    line: 'Cafeteria de torra própria: site, cardápio com pedido pelo WhatsApp e a base do Coado.',
     stack: ['react', 'typescript', 'tailwind', 'leaflet', 'cloudflare pages'],
     accent: 'var(--c-torra)',
     background: 'var(--c-torra-bg)',
@@ -193,13 +205,14 @@ export const projects: Project[] = [
     videos: videos('torra'),
     sheet: {
       architecture:
-        'Site em React e TypeScript com Tailwind, publicado no Cloudflare Pages. Cardápio com 26 itens, mapa interativo em Leaflet com entrada animada até a loja, e fotos em tela cheia com movimento lento de câmera.',
+        'Começou como site, em React e TypeScript com Tailwind, com mapa em Leaflet e fotos em tela cheia com movimento lento de câmera. Depois ganhou o cardápio digital (cardapio-torra.pages.dev), com carrinho e pedido que chega pronto no WhatsApp da loja. O cardápio virou a base do Coado, um SaaS de cardápio para várias cafeterias, com pedido na mesa por QR Code, em desenvolvimento.',
       decisions: [
+        'O cardápio é a peça de demonstração pra cafeterias: cada uma recebe uma versão com a identidade dela, não um molde.',
         'Animações só em transform e opacity, pra o movimento das fotos e o grão da imagem não pesarem no celular.',
-        'Parallax por CSS com @supports, que funciona onde o navegador suporta e não quebra onde não suporta.',
         'Cores da marca em tokens, sem cor solta no código.',
       ],
       repo: github,
+      repoNote: 'o Coado ainda é privado',
     },
   },
   {
@@ -207,6 +220,7 @@ export const projects: Project[] = [
     name: 'Cleane Barbosa',
     year: 2025,
     kind: 'cliente',
+    layout: 'metade',
     city: 'Palmas, TO',
     delivered: 'entregue em 2025',
     url: 'https://cleanebarbosa.com.br',
@@ -251,7 +265,7 @@ export interface OtherPrint {
 export interface OtherProject {
   id: string
   name: string
-  kind: 'cliente' | 'projeto em grupo'
+  kind: 'cliente' | 'projeto em grupo' | 'conceito próprio' | 'projeto acadêmico'
   year: number
   /** O que é, em poucas palavras (linha fechada). */
   line: string
@@ -288,20 +302,33 @@ const otherPrints = (id: string): OtherProject['prints'] => ({
   },
 })
 
-// Ordem da lista: a ONG primeiro (e aberta), porque é o design mais forte.
+// Ordem da lista: os dois conceitos com mais design primeiro (o Monte Vinhedo aberto), depois clientes e faculdade.
 export const otherProjects: OtherProject[] = [
   {
-    id: 'arte-de-amar',
-    name: 'ONG Arte de Amar',
-    kind: 'projeto em grupo',
+    id: 'monte-vinhedo',
+    name: 'Monte Vinhedo',
+    kind: 'conceito próprio',
     year: 2026,
-    line: 'one page da ONG Arte de Amar, de Palmas',
+    line: 'vinícola boutique de vinhos de altitude',
     about: [
-      'Site da ONG Arte de Amar, que atende crianças e famílias em Palmas desde 2015. Apresenta o trabalho da organização e leva quem visita até a doação. Projeto em grupo, em que fiquei com o desenvolvimento: React, Vite e GSAP, com um fio verde contínuo que atravessa a página acompanhando a rolagem.',
+      'Site conceitual de uma vinícola boutique de vinhos de altitude. One page em React com animações em GSAP presas à rolagem pelo ScrollTrigger: avançam e voltam junto com a leitura. Paleta curta em vinho e rosé, com cara de rótulo, e imagens em WebP carregadas sob demanda pra as seções pesadas não travarem o celular.',
     ],
-    stack: ['react', 'vite', 'gsap'],
-    url: 'https://arte-de-amar-site.pages.dev',
-    prints: otherPrints('arte-de-amar'),
+    stack: ['react', 'gsap', 'cloudflare pages'],
+    url: 'https://monte-vinhedo.pages.dev',
+    prints: otherPrints('monte-vinhedo'),
+  },
+  {
+    id: 'autoria',
+    name: 'AUTORIA.',
+    kind: 'conceito próprio',
+    year: 2026,
+    line: 'concessionária com fotos tratadas por um pipeline automático',
+    about: [
+      'Concessionária conceitual. Antes de entrar no site, as fotos passam por um pipeline: o Playwright coleta as imagens e o rembg remove o fundo de cada carro, então o estoque é atualizado sem abrir editor de foto e o layout controla a composição de cada tela.',
+    ],
+    stack: ['react', 'typescript', 'playwright', 'rembg'],
+    url: 'https://autoria-6kz.pages.dev',
+    prints: otherPrints('autoria'),
   },
   {
     id: 'tina-aires',
@@ -339,6 +366,7 @@ export const otherProjects: OtherProject[] = [
       'Autômato celular em que a contaminação de um acidente nuclear se espalha pela cidade e, com o tempo, a vegetação retoma o espaço. Projeto em grupo: fiquei com o código, o grupo com o relatório e a apresentação. O motor é TypeScript puro, sem DOM, com a grade em Uint8Array e buffer duplo, testado com Vitest. A tela em Canvas tem controles de execução e cenário (acidente, sarcófago, vento), estatísticas ao vivo e exportação em CSV e PNG.',
     ],
     stack: ['typescript', 'vite', 'canvas', 'vitest'],
+    url: 'https://retomada-automato-celular.pages.dev',
     prints: otherPrints('automato-celular'),
   },
   {
@@ -353,5 +381,17 @@ export const otherProjects: OtherProject[] = [
     stack: ['java', 'quarkus', 'angular'],
     // Sem link no ar: só o botão de código (o back-end; o front fica em fincontrol-web).
     repo: 'https://github.com/Gustavo16378/fincontrol-api',
+  },
+  {
+    id: 'ecommerce-cafe',
+    name: 'Ecommerce Café',
+    kind: 'projeto acadêmico',
+    year: 2026,
+    line: 'API de e-commerce de café em Java com Quarkus',
+    about: [
+      'API de uma loja de cafés, feita na faculdade. Java com Quarkus e Panache, organizada em camadas (resource, service, repository, mapper e DTOs), perfis ADMIN e USER com @RolesAllowed e erros no padrão Problem Details (RFC 7807).',
+    ],
+    stack: ['java', 'quarkus', 'postgresql'],
+    repo: 'https://github.com/Gustavo16378/ecommerce-cafe-api',
   },
 ]

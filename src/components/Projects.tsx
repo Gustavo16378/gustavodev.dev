@@ -198,7 +198,7 @@ export function Projects() {
   const setAt = (key: ListKey, i: number) => (el: HTMLElement | null) => {
     lists.current[key][i] = el
   }
-  const plays = (p: Project, kind: 'desktop' | 'mobile') => heroOf(p.id, policy.desktop) === kind
+  const plays = (p: Project, kind: 'desktop' | 'mobile') => heroOf(p.layout, policy.desktop) === kind
   const setVideo = (p: Project, i: number, kind: 'desktop' | 'mobile') => (el: HTMLVideoElement | null) => {
     if (plays(p, kind)) videos.current[i] = el
   }
@@ -298,7 +298,7 @@ export function Projects() {
               key={p.id}
               ref={setAt('names', i)}
               aria-hidden
-              className={`pointer-events-none absolute left-0 w-full -translate-y-1/2 opacity-0 ${TEXT_LAYOUT[p.id].name}`}
+              className={`pointer-events-none absolute left-0 w-full -translate-y-1/2 opacity-0 ${TEXT_LAYOUT[p.layout].name}`}
             >
               <div
                 ref={setAt('nameTracks', i)}
@@ -318,7 +318,7 @@ export function Projects() {
           {frame('mobile')}
 
           {projects.map((p, i) => {
-            const layout = TEXT_LAYOUT[p.id]
+            const layout = TEXT_LAYOUT[p.layout]
             const style: AccentStyle = { '--accent': p.accent }
             const device = policy.desktop ? 'desktop' : 'mobile'
             return (
