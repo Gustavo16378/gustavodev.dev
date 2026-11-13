@@ -204,10 +204,11 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   // Toque: um toque vale no máximo um passo; o Observer só diz pra que lado o dedo foi (40px de tolerância).
   let touchUsed = false
   let pendingNudge: 0 | 1 | -1 = 0
-  let touchQueues = false
+  // Toque: cada arrasto é um gesto inteiro (sem cauda de inércia, o Observer segura a página), então não tem
+  // intervalo de descanso depois da troca. Só o arrasto que trouxe até o palco (e o encaixe) é descartado.
+  let arrivalUntil = 0
   const onTouchStart = () => {
-    touchQueues = engaged && canQueue()
-    touchUsed = !touchQueues && blockedNow()
+    touchUsed = performance.now() < arrivalUntil
     pendingNudge = 0
   }
   window.addEventListener('touchstart', onTouchStart, { capture: true, passive: true })
@@ -222,7 +223,8 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const onSwipe = (dir: 1 | -1) => {
     if (touchUsed) return
     touchUsed = true
-    if (touchQueues && moving) {
+    // No meio de uma troca, o arrasto vira o próximo passo quando ela acabar (nunca se perde).
+    if (moving) {
       queued = dir
       return
     }
@@ -280,7 +282,8 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   }
 
   function step(dir: 1 | -1, source: 'touch' | 'other' | 'queued' = 'other') {
-    if (!engaged || (source !== 'queued' && blockedNow())) return
+    // Roda e teclado respeitam o intervalo depois da troca (a inércia do trackpad ainda chega); toque não precisa.
+    if (!engaged || (source === 'other' && blockedNow()) || (source === 'touch' && !!moving)) return
     const next = current + dir
     if (next >= 0 && next < n) {
       goto(next, dir)
@@ -380,6 +383,7 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
     wheel.done = true
     touchUsed = true
     cooldownUntil = performance.now() + (desktop ? ARRIVAL_COOLDOWN : snapMs + cooldown)
+    arrivalUntil = cooldownUntil
     listen(true)
     stage.dataset.engaged = 'true'
     opts.onEngaged(true)
