@@ -31,12 +31,14 @@ interface LayerProps {
   project: Project
   kind: 'desktop' | 'mobile'
   playable: boolean
+  /** Escurece o pé do print, onde o nome fica por cima (composição vitrine). */
+  scrim?: boolean
   layerRef: (el: HTMLDivElement | null) => void
   videoRef: (el: HTMLVideoElement | null) => void
 }
 
 /** Uma camada do frame: o print, ou o vídeo quando a mídia do projeto é vídeo e este frame é o que toca. */
-function Layer({ project, kind, playable, layerRef, videoRef }: LayerProps) {
+function Layer({ project, kind, playable, scrim = false, layerRef, videoRef }: LayerProps) {
   const label = `${project.name} no ${kind === 'desktop' ? 'desktop' : 'celular'}`
   const print = project.prints[kind]
   const video = project.videos[kind]
@@ -82,6 +84,13 @@ function Layer({ project, kind, playable, layerRef, videoRef }: LayerProps) {
             className="block size-full object-cover object-top"
           />
         </picture>
+      )}
+      {scrim && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
+          style={{ backgroundImage: 'linear-gradient(to top, var(--scrim), transparent)' }}
+        />
       )}
     </div>
   )
@@ -222,6 +231,7 @@ export function Projects() {
                     project={p}
                     kind={kind}
                     playable={plays(p, kind)}
+                    scrim={p.layout === 'vitrine' && TEXT_LAYOUT.vitrine.overlay[policy.desktop ? 'desktop' : 'mobile'] && desk === policy.desktop}
                     layerRef={setAt(desk ? 'deskLayers' : 'mobLayers', i)}
                     videoRef={setVideo(p, i, kind)}
                   />
