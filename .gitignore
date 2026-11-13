@@ -15,3 +15,7 @@ dist
 
 # uso local com o Claude Code, fora do repositório
 CLAUDE.md
+
+# testes de ponta a ponta
+test-results/
+playwright-report/

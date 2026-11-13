@@ -381,7 +381,7 @@ export function Preloader({ pageReady = true }: { pageReady?: boolean }) {
   }
 
   return (
-    <div ref={rootRef} aria-hidden className="fixed inset-0" style={{ zIndex: 'var(--z-preloader)' }}>
+    <div ref={rootRef} aria-hidden data-preloader className="fixed inset-0" style={{ zIndex: 'var(--z-preloader)' }}>
       <div ref={bgRef} className="absolute inset-0 bg-bg" />
       <div className="relative flex h-full items-center justify-center px-4">
         <div className="flex flex-col font-display text-[min(24vw,26svh)] leading-[0.8] tracking-[-0.01em] uppercase md:flex-row md:gap-[0.2em] md:text-[min(15vw,26svh)]">

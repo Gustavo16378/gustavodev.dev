@@ -86,6 +86,8 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const touchStage = !desktop
   const backdrop = touchStage ? (opts.backdrop ?? null) : null
 
+  // Quantos passos e em qual está (dataset.step): os testes de ponta a ponta leem daqui.
+  stage.dataset.steps = String(n)
   let vw = 0
   // Altura já conhecida antes do setup: as regras de "palco inteiro fora da tela" dependem dela desde o começo.
   let vh = stage.clientHeight
