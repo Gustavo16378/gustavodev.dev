@@ -3,11 +3,18 @@ import { getLenis } from './useLenis'
 import { holdScroll, isScrollLocked, onLockChange, releaseScroll } from './scrollLock'
 import { isNavigating, onNavigate } from './navigate'
 
-export const STEP = 1.1 // duração de uma troca, em segundos
+/** Comprimento de uma troca na timeline mestra (as composições são montadas nessa escala). */
+export const STEP = 1.1
+/** Quanto uma troca leva de verdade, em segundos: a timeline é tocada mais rápido que foi montada. */
+const PLAY = 0.82
 const WHEEL_GAP = 120 // ms sem wheel que encerram um gesto
 const WHEEL_STEP = 30 // px acumulados num gesto pra dar um passo
 const EDGE = 12 // px da fronteira do palco em que ele já prende
-const ARRIVAL_COOLDOWN = 600 // ms depois de prender em que nenhum gesto conta
+/** Desktop: indo na direção do palco, ele puxa a página a partir desta fração da tela (ímã, sem freada seca). */
+const CAPTURE = 0.22
+const ARRIVAL_COOLDOWN = 280 // ms depois de prender em que nenhum gesto conta (a cauda da inércia já é filtrada)
+/** Gesto novo depois desta fração da troca fica guardado e vira o próximo passo quando ela acaba. */
+const QUEUE_AFTER = 0.35
 const TOUCH_NUDGE = 0.4 // fração da tela que a página anda quando o swipe solta o palco (celular)
 
 /** Etiqueta do passo i na timeline mestra (no fim da troca que chega nele). */
@@ -30,6 +37,11 @@ export interface SteppedStageOptions {
   /** Só no celular: fundo fixo que cobre o resto da tela enquanto o palco está preso. */
   backdrop?: HTMLElement | null
   count: number
+  /**
+   * Curva aplicada à troca inteira, nos dois sentidos. 'none' (padrão) respeita as curvas de dentro da timeline;
+   * uma curva de saída faz a troca responder logo no gesto e assentar devagar.
+   */
+  playEase?: string
   desktop: boolean
   reduced: boolean
   memory: { current: StageMemory }
@@ -68,7 +80,7 @@ export interface SteppedStage {
  */
 export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const { stage, count: n, desktop, reduced, memory } = opts
-  const cooldown = desktop ? 250 : 350
+  const cooldown = desktop ? 120 : 200
   // Celular (toque, até 767px): fundo fixo e vizinhas escondidas enquanto preso, inércia segurada, resize da barra
   // de endereço sem reconstruir. No desktop tudo isso fica de fora.
   const touchStage = !desktop
@@ -99,6 +111,7 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
 
   const setCurrent = (i: number) => {
     current = i
+    stage.dataset.step = String(i)
     opts.onCurrent(i)
   }
 
@@ -106,6 +119,7 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const applyInstant = (i: number) => {
     moving?.kill()
     moving = null
+    queued = 0
     master?.seek(stepLabel(i), false)
     opts.afterSeek?.()
     setCurrent(i)
@@ -130,6 +144,9 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const normalize = (e: WheelEvent) =>
     e.deltaMode === 1 ? e.deltaY * lineHeight : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY
   const blockedNow = () => !!moving || performance.now() < cooldownUntil
+  // Gesto novo na segunda metade de uma troca não se perde: fica guardado e sai quando ela acaba.
+  let queued: 0 | 1 | -1 = 0
+  const canQueue = () => !!moving && moving.progress() >= QUEUE_AFTER
   const nudge = (px: number) => {
     const lenis = getLenis()
     if (!lenis) {
@@ -151,7 +168,9 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
     if (listening) e.preventDefault()
     const d = normalize(e)
     if (d === 0) return
-    const now = performance.now()
+    // Hora em que o evento nasceu, não a hora em que o JS conseguiu tratar: com a página ocupada (troca no meio),
+    // os eventos de uma mesma inércia chegam amontoados e pareceriam dois gestos separados por uma pausa.
+    const now = e.timeStamp || performance.now()
     const abs = Math.abs(d)
     const sign = Math.sign(d)
     const reaccel = wheel.falling && abs > Math.max(wheel.prevAbs * 1.5, wheel.prevAbs + 4)
@@ -160,8 +179,11 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
       wheel.sign = sign
       wheel.acc = 0
       wheel.falling = false
-      // Começou no meio da troca ou no intervalo: o gesto inteiro não conta.
-      wheel.done = blockedNow()
+      // Começou no começo da troca ou no intervalo: o gesto inteiro não conta. No fim da troca, vira o próximo passo.
+      if (listening && canQueue()) {
+        queued = sign > 0 ? 1 : -1
+        wheel.done = true
+      } else wheel.done = blockedNow()
     } else if (abs < wheel.prevAbs) {
       wheel.falling = true
     }
@@ -180,8 +202,10 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   // Toque: um toque vale no máximo um passo; o Observer só diz pra que lado o dedo foi (40px de tolerância).
   let touchUsed = false
   let pendingNudge: 0 | 1 | -1 = 0
+  let touchQueues = false
   const onTouchStart = () => {
-    touchUsed = blockedNow()
+    touchQueues = engaged && canQueue()
+    touchUsed = !touchQueues && blockedNow()
     pendingNudge = 0
   }
   window.addEventListener('touchstart', onTouchStart, { capture: true, passive: true })
@@ -196,6 +220,10 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const onSwipe = (dir: 1 | -1) => {
     if (touchUsed) return
     touchUsed = true
+    if (touchQueues && moving) {
+      queued = dir
+      return
+    }
     step(dir, 'touch')
   }
 
@@ -213,12 +241,25 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
       }, done)
       return
     }
-    moving = tl.tweenTo(stepLabel(next), { ease: 'none', onComplete: done })
+    moving = tl.tweenTo(stepLabel(next), { duration: PLAY, ease: opts.playEase ?? 'none', onComplete: done })
   }
   function done() {
     moving = null
-    cooldownUntil = performance.now() + cooldown
     opts.afterSeek?.()
+    const next = queued
+    queued = 0
+    // O gesto guardado sai na hora, sem intervalo: quem rolou duas vezes quer andar duas vezes.
+    if (next && engaged && !rebuildPending) {
+      focusAfter = null
+      step(next, 'queued')
+      // Saiu do palco em vez de trocar: o refresh que esperava a troca roda agora.
+      if (!moving && refreshPending) {
+        refreshPending = false
+        scheduleRefresh()
+      }
+      return
+    }
+    cooldownUntil = performance.now() + cooldown
     if (focusAfter) {
       const list = opts.focusables(current)
       const el = focusAfter === 'first' ? list[0] : list[list.length - 1]
@@ -236,11 +277,19 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
     }
   }
 
-  function step(dir: 1 | -1, source: 'touch' | 'other' = 'other') {
-    if (!engaged || blockedNow()) return
+  function step(dir: 1 | -1, source: 'touch' | 'other' | 'queued' = 'other') {
+    if (!engaged || (source !== 'queued' && blockedNow())) return
     const next = current + dir
-    if (next < 0 || next >= n) release(dir, source)
-    else goto(next, dir)
+    if (next >= 0 && next < n) {
+      goto(next, dir)
+      return
+    }
+    release(dir, source === 'queued' ? 'other' : source)
+    // Saída guardada (gesto feito no fim da última troca): a página segue andando pra fora do palco.
+    if (source === 'queued') {
+      if (touchStage) touchNudge(dir)
+      else nudge(dir * Math.round(vh * 0.35))
+    }
   }
 
   const touchObserver = Observer.create({
@@ -289,7 +338,8 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
     }
     snapFallback?.kill()
     snapFallback = gsap.delayedCall(0.7, end)
-    const duration = Math.min(0.45, Math.max(0.18, dist / 1400))
+    // Curva do Lenis (sai rápido e assenta): de longe (ímã) desliza um pouco mais, de perto é quase um clique.
+    const duration = Math.min(0.55, Math.max(0.2, dist / 650))
     lenis.scrollTo(y, { duration, force: true, onComplete: end })
     return duration * 1000
   }
@@ -336,6 +386,7 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   const disengage = () => {
     if (!engaged) return
     engaged = false
+    queued = 0
     listen(false)
     holdVisuals(false)
     releaseScroll()
@@ -359,7 +410,8 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
   // A cada scroll: cruzou a fronteira do palco? Prende.
   const onScroll = () => {
     const y = window.scrollY
-    const delta = Math.abs(y - lastY)
+    const dy = y - lastY
+    const delta = Math.abs(dy)
     lastY = y
     jumpTimer?.kill()
     jumpTimer = null
@@ -406,12 +458,15 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
       })
       return
     }
-    settle(top)
+    settle(top, dy)
   }
   // Perto o bastante da fronteira já prende: o scroll suave desacelera e pode parar a 1px sem cruzar.
-  function settle(top: number) {
-    if (side === 'above' && top <= EDGE) engage(0)
-    else if (side === 'below' && top >= -EDGE) engage(n - 1)
+  // No desktop, indo na direção do palco, ele puxa antes (CAPTURE): a página não fica se arrastando no fim da
+  // freada do Lenis até encostar. No celular a rolagem é nativa e o dedo ainda está na tela; ali só na fronteira.
+  function settle(top: number, dy = 0) {
+    const zone = desktop ? Math.max(EDGE, vh * CAPTURE) : EDGE
+    if (side === 'above' && (top <= EDGE || (dy > 0 && top <= zone))) engage(0)
+    else if (side === 'below' && (top >= -EDGE || (dy < 0 && top >= -zone))) engage(n - 1)
     else if (side === 'released-up') {
       if (top > EDGE * 2) side = 'above'
       else if (top < -EDGE * 2) engage(0)

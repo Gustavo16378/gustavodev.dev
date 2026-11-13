@@ -157,7 +157,8 @@ export function useProjectsStage(
       const tl = gsap.timeline({ paused: true, onUpdate: syncRing })
       tl.addLabel(label(0), 0)
 
-      const move = { duration: STEP, ease: 'power3.inOut', immediateRender: false }
+      // Linear por dentro: a curva vem de fora (playEase), igual na ida e na volta, e sai rápido logo no gesto.
+      const move = { duration: STEP, ease: 'none', immediateRender: false }
       for (let i = 0; i < n - 1; i++) {
         const t = i * STEP
         const a = comps[i]
@@ -342,6 +343,7 @@ export function useProjectsStage(
       stage: els.stage,
       backdrop,
       count: n,
+      playEase: 'power3.out',
       desktop,
       reduced,
       memory,
