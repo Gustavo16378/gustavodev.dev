@@ -188,6 +188,16 @@ export function Others() {
     gsap.set(track, { x: positions[activeRef.current] })
     paint()
 
+    // Dica de arrasto (ver mais abaixo). Qualquer toque na faixa cancela, mesmo que ela ainda não tenha começado.
+    let hinted = false
+    let hint: gsap.core.Timeline | null = null
+    let hintIO: IntersectionObserver | null = null
+    const stopHint = () => {
+      hinted = true
+      hintIO?.disconnect()
+      hint?.kill()
+    }
+
     const [drag] = Draggable.create(track, {
       type: 'x',
       inertia: !reduced,
@@ -196,11 +206,22 @@ export function Others() {
       // Um arremesso anda no máximo dois projetos: com a inércia solta, um dedo forte passava a faixa toda.
       throwResistance: 2400,
       maxDuration: 0.9,
-      snap: { x: (v: number) => positions[Math.max(pressed - 2, Math.min(pressed + 2, nearest(v)))] },
+      snap: {
+        x: (v: number) => {
+          // Onde a inércia levaria; mas um arrasto de verdade (mais de 12% do cartão) sempre anda ao menos um
+          // projeto pro lado dele, mesmo devagar: voltar pro mesmo parecia que a faixa estava travada.
+          let i = nearest(v)
+          const moved = Number(gsap.getProperty(track, 'x')) - positions[pressed]
+          if (i === pressed && Math.abs(moved) > els[pressed].offsetWidth * 0.12) i = pressed + (moved < 0 ? 1 : -1)
+          i = Math.max(pressed - 2, Math.min(pressed + 2, i))
+          return positions[Math.max(0, Math.min(n - 1, i))]
+        },
+      },
       allowNativeTouchScrolling: true,
       dragClickables: true,
       minimumMovement: 6,
       onPress() {
+        stopHint()
         gsap.killTweensOf(track)
         pressed = activeRef.current
       },
@@ -219,7 +240,13 @@ export function Others() {
       },
     })
 
+    // Sem isto o Draggable deixa touch-action: manipulation, o navegador assume o gesto horizontal e cancela o
+    // ponteiro no primeiro movimento: no celular a faixa não arrastava. pan-y: vertical rola a página, horizontal é nosso.
+    track.style.touchAction = 'pan-y'
+    viewport.style.touchAction = 'pan-y'
+
     api.current.goTo = (i: number) => {
+      stopHint()
       const k = Math.max(0, Math.min(n - 1, i))
       gsap.to(track, {
         x: positions[k],
@@ -244,8 +271,25 @@ export function Others() {
     const ro = new ResizeObserver(onResize)
     ro.observe(viewport)
 
+    // Dica: na primeira vez que a faixa aparece, ela anda um pouco pro lado e volta, mostrando que arrasta.
+    hintIO = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting || hinted || reduced) return
+        hinted = true
+        hintIO?.disconnect()
+        const x = positions[activeRef.current]
+        hint = gsap
+          .timeline({ delay: 0.5, onUpdate: paint })
+          .to(track, { x: x - viewport.clientWidth * 0.22, duration: 0.55, ease: 'power2.inOut' })
+          .to(track, { x, duration: 0.9, ease: 'elastic.out(1, 0.5)' })
+      },
+      { threshold: 0.6 },
+    )
+    hintIO.observe(viewport)
+
     return () => {
       ro.disconnect()
+      stopHint()
       drag.kill()
       gsap.killTweensOf(track)
     }
@@ -304,7 +348,7 @@ export function Others() {
                 cards.current[i] = el
               }}
               aria-hidden={i !== active}
-              className="w-[80vw] shrink-0 will-change-transform md:w-[46vw]"
+              className="w-[72vw] shrink-0 will-change-transform md:w-[46vw]"
             >
               <Card project={p} />
             </div>
@@ -312,11 +356,23 @@ export function Others() {
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between px-6 font-mono text-xs text-muted md:hidden">
-        <span>
-          <span className="text-acid">{pad(active + 1)}</span> / {pad(n)}
-        </span>
-        <span>arrasta ↔</span>
+      <div className="mt-3 flex items-center justify-between gap-4 px-6 md:hidden">
+        <button type="button" aria-label="projeto anterior" onClick={() => go(-1)} disabled={active === 0} className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
+          ←
+        </button>
+        <div className="flex flex-col items-center gap-2">
+          <div aria-hidden className="flex gap-1.5">
+            {otherProjects.map((p, i) => (
+              <span key={p.id} className="h-1.5 rounded-full transition-[width,background-color] duration-300" style={{ width: i === active ? 18 : 6, backgroundColor: i === active ? 'var(--c-acid)' : 'var(--c-border)' }} />
+            ))}
+          </div>
+          <span className="font-mono text-[11px] text-muted">
+            <span className="text-acid">{pad(active + 1)}</span> / {pad(n)} · arrasta pro lado
+          </span>
+        </div>
+        <button type="button" aria-label="próximo projeto" onClick={() => go(1)} disabled={active === n - 1} className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
+          →
+        </button>
       </div>
 
       <div ref={detailsRef} aria-live="polite" className="mt-8 px-4 pl-6 md:mt-10 md:px-12">
