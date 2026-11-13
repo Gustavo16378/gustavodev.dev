@@ -1,0 +1,45 @@
+name: CI
+
+# A cada push e pull request: build de produção e os testes de ponta a ponta em desktop e em celular
+# (toque de verdade). Se algum falhar, o commit fica vermelho e não vai pra main.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: build e testes (desktop e celular)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: build (tsc + vite)
+        run: npm run build
+
+      - name: navegador dos testes
+        run: npx playwright install --with-deps chromium
+
+      - name: testes de ponta a ponta
+        run: npx playwright test
+
+      - name: relatório dos testes que falharam
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
