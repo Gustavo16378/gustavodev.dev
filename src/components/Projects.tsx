@@ -1,5 +1,9 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { projects, projectById, type Project, type ProjectId } from '../data/projects'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { flushSync } from 'react-dom'
+import { projects, projectById, type Print, type Project, type ProjectId, type ProjectView } from '../data/projects'
+import { gsap } from '../motion/gsap'
+import { prefersReducedMotion } from '../motion/reducedMotion'
+import { ApiShot } from './ApiShot'
 import { useProjectsStage, type StageEls } from '../motion/useProjectsStage'
 import { useTilt } from '../motion/useTilt'
 import { useScrollSkew } from '../motion/useScrollSkew'
@@ -27,23 +31,46 @@ const ringMask: CSSProperties = {
   WebkitMaskComposite: 'xor',
 }
 
+function PrintPicture({ print, kind, alt }: { print: Print; kind: 'desktop' | 'mobile'; alt: string }) {
+  return (
+    <picture>
+      <source
+        srcSet={`${print.webpSmall} ${print.smallWidth}w, ${print.webp} ${print.width}w`}
+        sizes={kind === 'desktop' ? '(min-width: 768px) 68vw, 96vw' : '(min-width: 768px) 20vw, 84vw'}
+        type="image/webp"
+      />
+      <img
+        src={print.png}
+        alt={alt}
+        width={print.width}
+        height={print.height}
+        loading="lazy"
+        decoding="async"
+        className="block size-full object-cover object-top"
+      />
+    </picture>
+  )
+}
+
 interface LayerProps {
   project: Project
   kind: 'desktop' | 'mobile'
   playable: boolean
   /** Escurece o pé do print, onde o nome fica por cima (composição vitrine). */
   scrim?: boolean
+  /** Tela por dentro aberta neste projeto (painel, app, api), por cima do print. */
+  view?: ProjectView | null
   layerRef: (el: HTMLDivElement | null) => void
   videoRef: (el: HTMLVideoElement | null) => void
 }
 
 /** Uma camada do frame: o print, ou o vídeo quando a mídia do projeto é vídeo e este frame é o que toca. */
-function Layer({ project, kind, playable, scrim = false, layerRef, videoRef }: LayerProps) {
+function Layer({ project, kind, playable, scrim = false, view = null, layerRef, videoRef }: LayerProps) {
   const label = `${project.name} no ${kind === 'desktop' ? 'desktop' : 'celular'}`
   const print = project.prints[kind]
   const video = project.videos[kind]
   return (
-    <div ref={layerRef} className="absolute inset-0 opacity-0">
+    <div ref={layerRef} className="absolute inset-0 opacity-0" style={{ containerType: 'inline-size' }}>
       {project.media === 'video' && playable ? (
         <video
           ref={videoRef}
@@ -68,24 +95,18 @@ function Layer({ project, kind, playable, scrim = false, layerRef, videoRef }: L
           className="block size-full object-cover object-top"
         />
       ) : (
-        <picture>
-          <source
-            srcSet={`${print.webpSmall} ${print.smallWidth}w, ${print.webp} ${print.width}w`}
-            sizes={kind === 'desktop' ? '(min-width: 768px) 68vw, 96vw' : '(min-width: 768px) 20vw, 84vw'}
-            type="image/webp"
-          />
-          <img
-            src={print.png}
-            alt={label}
-            width={print.width}
-            height={print.height}
-            loading="lazy"
-            decoding="async"
-            className="block size-full object-cover object-top"
-          />
-        </picture>
+        <PrintPicture print={print} kind={kind} alt={label} />
       )}
-      {scrim && (
+      {view && (
+        <div className="absolute inset-0 z-[1] bg-surface">
+          {view.api ? (
+            <ApiShot shot={view.api} phone={kind === 'mobile'} />
+          ) : view.prints ? (
+            <PrintPicture print={view.prints[kind]} kind={kind} alt={`${project.name}, ${view.label}, no ${kind === 'desktop' ? 'desktop' : 'celular'}`} />
+          ) : null}
+        </div>
+      )}
+      {scrim && !view && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
@@ -115,6 +136,8 @@ export function Projects() {
   const deskTiltRef = useRef<HTMLDivElement>(null)
   const mobTiltRef = useRef<HTMLDivElement>(null)
   const deskSkewRef = useRef<HTMLDivElement>(null)
+  const deskFlipRef = useRef<HTMLDivElement>(null)
+  const mobFlipRef = useRef<HTMLDivElement>(null)
   const mobSkewRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
   const backdropWipeRef = useRef<HTMLDivElement>(null)
@@ -178,6 +201,7 @@ export function Projects() {
       videos: videos.current,
       backdrop: backdropRef.current,
       backdropWipe: backdropWipeRef.current,
+      flips: [deskFlipRef.current, mobFlipRef.current].filter((el): el is HTMLDivElement => !!el),
     }
   }, [])
 
@@ -188,6 +212,32 @@ export function Projects() {
     onCurrent: setCurrent,
     onEngaged: setEngaged,
   })
+
+  // Tela por dentro aberta (painel, app, api): de um projeto só. Trocar de projeto fecha, depois da troca.
+  const [inside, setInside] = useState<{ i: number; id: string } | null>(null)
+  const flipping = useRef<gsap.core.Timeline | null>(null)
+  const openView = useCallback((i: number, id: string | null) => {
+    const next = id ? { i, id } : null
+    const flips = [deskFlipRef.current, mobFlipRef.current].filter((el): el is HTMLDivElement => !!el)
+    flipping.current?.progress(1).kill()
+    if (prefersReducedMotion() || !flips.length) {
+      setInside(next)
+      return
+    }
+    // O frame gira até ficar de lado, troca a tela sem ninguém ver e volta girando do outro lado, com mola.
+    gsap.set(flips, { transformPerspective: 1400, transformOrigin: '50% 50%' })
+    flipping.current = gsap
+      .timeline({ onComplete: () => void (flipping.current = null) })
+      .to(flips, { rotationY: -86, scale: 0.92, duration: 0.24, ease: 'power2.in', stagger: 0.05 })
+      .add(() => flushSync(() => setInside(next)))
+      .fromTo(flips, { rotationY: 86, scale: 0.92 }, { rotationY: 0, scale: 1, duration: 0.8, ease: 'back.out(1.6)', stagger: 0.07 })
+  }, [])
+  useEffect(() => {
+    if (!inside || inside.i === current) return
+    const t = window.setTimeout(() => setInside(null), 1000)
+    return () => window.clearTimeout(t)
+  }, [current, inside])
+  const viewOf = (p: Project, i: number) => (inside?.i === i ? (p.views.find((v) => v.id === inside.id) ?? null) : null)
 
   const { show } = sheet
   const openers = useMemo(
@@ -224,25 +274,28 @@ export function Projects() {
         <div ref={desk ? deskFloatRef : mobFloatRef} className="size-full will-change-transform">
           <div ref={desk ? deskTiltRef : mobTiltRef} className="size-full will-change-transform">
             <div ref={desk ? deskSkewRef : mobSkewRef} className="relative size-full will-change-transform">
-              <div className={`${frameBox} ${radius}`}>
-                {projects.map((p, i) => (
-                  <Layer
-                    key={p.id}
-                    project={p}
-                    kind={kind}
-                    playable={plays(p, kind)}
-                    scrim={p.layout === 'vitrine' && TEXT_LAYOUT.vitrine.overlay[policy.desktop ? 'desktop' : 'mobile'] && desk === policy.desktop}
-                    layerRef={setAt(desk ? 'deskLayers' : 'mobLayers', i)}
-                    videoRef={setVideo(p, i, kind)}
+              <div ref={desk ? deskFlipRef : mobFlipRef} className="relative size-full will-change-transform">
+                <div className={`${frameBox} ${radius}`}>
+                  {projects.map((p, i) => (
+                    <Layer
+                      key={p.id}
+                      project={p}
+                      kind={kind}
+                      playable={plays(p, kind)}
+                      view={viewOf(p, i)}
+                      scrim={p.layout === 'vitrine' && TEXT_LAYOUT.vitrine.overlay[policy.desktop ? 'desktop' : 'mobile'] && desk === policy.desktop}
+                      layerRef={setAt(desk ? 'deskLayers' : 'mobLayers', i)}
+                      videoRef={setVideo(p, i, kind)}
+                    />
+                  ))}
+                </div>
+                <div aria-hidden className={`pointer-events-none absolute overflow-hidden ${radius}`} style={ringMask}>
+                  <div
+                    ref={setAt('glints', desk ? 0 : 1)}
+                    className="absolute inset-y-0 left-0 w-1/3 will-change-transform"
+                    style={{ backgroundImage: 'var(--glint)' }}
                   />
-                ))}
-              </div>
-              <div aria-hidden className={`pointer-events-none absolute overflow-hidden ${radius}`} style={ringMask}>
-                <div
-                  ref={setAt('glints', desk ? 0 : 1)}
-                  className="absolute inset-y-0 left-0 w-1/3 will-change-transform"
-                  style={{ backgroundImage: 'var(--glint)' }}
-                />
+                </div>
               </div>
             </div>
           </div>
@@ -336,6 +389,8 @@ export function Projects() {
                 <Plaque
                   project={p}
                   onSheet={openers[p.id]}
+                  active={inside?.i === i ? inside.id : null}
+                  onView={(id) => openView(i, id)}
                   overlay={layout.overlay[device]}
                   shadow={layout.shadow[device]}
                   center={layout.center}

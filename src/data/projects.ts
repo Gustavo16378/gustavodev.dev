@@ -34,6 +34,25 @@ export interface Print {
 export type Media = 'print' | 'video'
 export const DEFAULT_MEDIA: Media = 'print'
 
+/** Uma requisição mostrada como terminal dentro do frame (tela "api"). */
+export interface ApiShot {
+  /** Linha de cima: o que foi pedido e o que voltou. */
+  request: string
+  status: string
+  /** Corpo, linha a linha (JSON ou lista de rotas). */
+  lines: string[]
+}
+
+/** Outra tela do mesmo projeto, que o visitante abre se quiser (painel, app, API). */
+export interface ProjectView {
+  id: string
+  label: string
+  /** Uma linha do que se vê. */
+  caption: string
+  prints?: { desktop: Print; mobile: Print }
+  api?: ApiShot
+}
+
 export interface ProjectSheet {
   /** Duas ou três linhas. */
   architecture: string
@@ -66,6 +85,10 @@ export interface Project {
   /** O site rodando, gravado em desktop e mobile (public/videos/). */
   videos: { desktop: SiteVideo; mobile: SiteVideo }
   sheet: ProjectSheet
+  /** Nome da tela principal no seletor "por dentro" (site ou app). */
+  mainLabel: string
+  /** Telas por dentro, além da principal. Vazio: o seletor não aparece. */
+  views: ProjectView[]
 }
 
 const video = (id: string, kind: 'desktop' | 'mobile', width: number, height: number, webm: boolean): SiteVideo => ({
@@ -82,28 +105,46 @@ const videos = (id: string): Project['videos'] => ({
   mobile: video(id, 'mobile', 390, 844, false),
 })
 
-const prints = (id: string): Project['prints'] => ({
-  desktop: {
-    webp: `/prints/${id}-desktop.webp`,
-    webpSmall: `/prints/${id}-desktop-800.webp`,
-    smallWidth: 800,
-    png: `/prints/${id}-desktop.png`,
-    width: 1600,
-    height: 1000,
-  },
-  mobile: {
-    webp: `/prints/${id}-mobile.webp`,
-    webpSmall: `/prints/${id}-mobile-240.webp`,
-    smallWidth: 240,
-    png: `/prints/${id}-mobile.png`,
-    width: 480,
-    height: 1039,
-  },
-})
+/** Prints do palco. `hi`: capturados em alta (2400x1500 e 960x2078), pra telas densas e celulares grandes. */
+const prints = (id: string, hi = false): Project['prints'] => {
+  const [dw, dh, ds, mw, mh, ms] = hi ? [2400, 1500, 1200, 960, 2078, 480] : [1600, 1000, 800, 480, 1039, 240]
+  return {
+    desktop: {
+      webp: `/prints/${id}-desktop.webp`,
+      webpSmall: `/prints/${id}-desktop-${ds}.webp`,
+      smallWidth: ds,
+      png: `/prints/${id}-desktop.png`,
+      width: dw,
+      height: dh,
+    },
+    mobile: {
+      webp: `/prints/${id}-mobile.webp`,
+      webpSmall: `/prints/${id}-mobile-${ms}.webp`,
+      smallWidth: ms,
+      png: `/prints/${id}-mobile.png`,
+      width: mw,
+      height: mh,
+    },
+  }
+}
+
+/** Prints de uma tela por dentro (public/prints/dentro/), sempre em alta e só em WebP. */
+const inside = (id: string, view: string): ProjectView['prints'] => {
+  const one = (kind: 'desktop' | 'mobile', w: number, h: number, small: number): Print => ({
+    webp: `/prints/dentro/${id}-${view}-${kind}.webp`,
+    webpSmall: `/prints/dentro/${id}-${view}-${kind}-${small}.webp`,
+    smallWidth: small,
+    png: `/prints/dentro/${id}-${view}-${kind}.webp`,
+    width: w,
+    height: h,
+  })
+  return { desktop: one('desktop', 2400, 1500, 1200), mobile: one('mobile', 960, 2078, 480) }
+}
 
 const github = { label: 'github', url: 'https://github.com/Gustavo16378' }
 
-// Ordem da seção 03: dourado, verde, capim, laranja, sálvia (cores vizinhas nunca parecidas).
+// Ordem da seção 03: dourado, âmbar, verde, laranja, sálvia (cores vizinhas nunca parecidas). Capi e TORRA usam
+// a mesma composição (celular), com o Arte de Amar entre os dois.
 export const projects: Project[] = [
   {
     id: 'stewer',
@@ -132,33 +173,39 @@ export const projects: Project[] = [
       repo: { label: 'github', url: 'https://github.com/Gustavo16378/stewer-agenda-api' },
       repoNote: 'API e app são públicos',
     },
-  },
-  {
-    id: 'arte-de-amar',
-    name: 'Arte de Amar',
-    year: 2026,
-    kind: 'projeto em grupo',
-    layout: 'frame-esquerda',
-    city: 'Palmas, TO',
-    delivered: 'entregue em 2026',
-    url: 'https://arte-de-amar-site.pages.dev',
-    line: 'Site e painel da ONG Arte de Amar, que atende crianças e famílias em Palmas desde 2015.',
-    stack: ['react', 'gsap', 'pages functions', 'cloudflare d1'],
-    accent: 'var(--c-arte)',
-    background: 'var(--c-arte-bg)',
-    media: DEFAULT_MEDIA,
-    prints: prints('arte-de-amar'),
-    videos: videos('arte-de-amar'),
-    sheet: {
-      architecture:
-        'One page em React, Vite e GSAP, com um fio verde contínuo que acompanha a rolagem. O conteúdo vem de uma API em Cloudflare Pages Functions com banco D1, e a diretoria troca fotos, projetos e textos pelo painel em /admin, sem depender de programador. Projeto em grupo de cinco pessoas, em que fiquei com o desenvolvimento.',
-      decisions: [
-        'Custo zero, porque é uma ONG: site, API, banco e painel no plano gratuito da Cloudflare, só o domínio é pago.',
-        'Painel próprio em vez de um CMS pronto: só os campos que a diretoria usa, sem nada pra aprender além disso.',
-        'Fotos da ONG desde 2015 otimizadas e carregadas sob demanda, pra a página abrir rápido no celular.',
-      ],
-      repo: { label: 'github', url: 'https://github.com/Gustavo16378/arte-de-amar' },
-    },
+    mainLabel: 'site',
+    views: [
+      { id: 'app', label: 'app', caption: 'App de agendamento: o dia, a semana, clientes e financeiro (dados de exemplo).', prints: inside('stewer', 'app') },
+      { id: 'painel', label: 'painel', caption: 'Painel do site: o Stewer troca fotos, textos e serviços sem mexer em código.', prints: inside('stewer', 'painel') },
+      {
+        id: 'api',
+        label: 'api',
+        caption: 'As rotas da API em Quarkus, lidas do código.',
+        api: {
+          request: 'stewer-agenda-api · Quarkus · 66 rotas',
+          status: 'OpenAPI',
+          lines: [
+            "# JWT com papéis CLIENTE, PROFISSIONAL e ADMIN",
+            "POST   /auth/login",
+            "POST   /auth/registrar",
+            "GET    /profissionais/{id}/horarios-livres",
+            "POST   /agendamentos",
+            "GET    /agendamentos/agenda",
+            "GET    /agendamentos/agenda/periodo",
+            "PATCH  /agendamentos/{id}/horario",
+            "PATCH  /agendamentos/{id}/status",
+            "GET    /clientes/aniversariantes",
+            "GET    /clientes/sumidos",
+            "PUT    /clientes/{id}/ficha",
+            "POST   /clientes/{id}/anotacoes",
+            "GET    /relatorios/financeiro",
+            "GET    /auditoria",
+            "GET    /ping",
+            "# … e mais 51 rotas",
+          ],
+        },
+      },
+    ],
   },
   {
     id: 'capi',
@@ -174,7 +221,7 @@ export const projects: Project[] = [
     accent: 'var(--c-capi)',
     background: 'var(--c-capi-bg)',
     media: DEFAULT_MEDIA,
-    prints: prints('capi'),
+    prints: prints('capi', true),
     videos: videos('capi'),
     sheet: {
       architecture:
@@ -186,13 +233,76 @@ export const projects: Project[] = [
       ],
       repo: { label: 'github', url: 'https://github.com/Gustavo16378/tyranitar-capim-dourado' },
     },
+    mainLabel: 'app',
+    views: [
+      { id: 'ia', label: 'capi', caption: 'A Capi procura no shopping o produto de uma foto.', prints: inside('capi', 'ia') },
+      { id: 'lojista', label: 'lojista', caption: 'Painel da loja: reservas, produtos, cupons e desempenho.', prints: inside('capi', 'lojista') },
+      { id: 'shopping', label: 'shopping', caption: 'Painel do shopping: lojas, campanhas e demanda.', prints: inside('capi', 'shopping') },
+    ],
+  },
+  {
+    id: 'arte-de-amar',
+    name: 'Arte de Amar',
+    year: 2026,
+    kind: 'projeto em grupo',
+    layout: 'frame-esquerda',
+    city: 'Palmas, TO',
+    delivered: 'entregue em 2026',
+    url: 'https://arte-de-amar-site.pages.dev',
+    line: 'Site e painel da ONG Arte de Amar, que atende crianças e famílias em Palmas desde 2015.',
+    stack: ['react', 'gsap', 'pages functions', 'cloudflare d1'],
+    accent: 'var(--c-arte)',
+    background: 'var(--c-arte-bg)',
+    media: DEFAULT_MEDIA,
+    prints: prints('arte-de-amar', true),
+    videos: videos('arte-de-amar'),
+    sheet: {
+      architecture:
+        'One page em React, Vite e GSAP, com um fio verde contínuo que acompanha a rolagem. O conteúdo vem de uma API em Cloudflare Pages Functions com banco D1, e a diretoria troca fotos, projetos e textos pelo painel em /admin, sem depender de programador. Projeto em grupo de cinco pessoas, em que fiquei com o desenvolvimento.',
+      decisions: [
+        'Custo zero, porque é uma ONG: site, API, banco e painel no plano gratuito da Cloudflare, só o domínio é pago.',
+        'Painel próprio em vez de um CMS pronto: só os campos que a diretoria usa, sem nada pra aprender além disso.',
+        'Fotos da ONG desde 2015 otimizadas e carregadas sob demanda, pra a página abrir rápido no celular.',
+      ],
+      repo: { label: 'github', url: 'https://github.com/Gustavo16378/arte-de-amar' },
+    },
+    mainLabel: 'site',
+    views: [
+      { id: 'painel', label: 'painel', caption: 'Painel da diretoria: projetos, fotos, linha do tempo e voluntários (dados de exemplo).', prints: inside('arte-de-amar', 'painel') },
+      {
+        id: 'api',
+        label: 'api',
+        caption: 'O que o site recebe da API em produção.',
+        api: {
+          request: 'GET /api/conteudo',
+          status: '200 · json',
+          lines: [
+            "{",
+            "  \"projetos\": [",
+            "    {",
+            "      \"nome\": \"Dia das Crianças\",",
+            "      \"publico\": \"Crianças de 2 a 12 anos\",",
+            "      \"status\": \"Em andamento\",",
+            "      \"foto\": { \"src\": \"/api/midias/26\" }",
+            "    },",
+            "    … mais 5 projetos",
+            "  ],",
+            "  \"marcos\": [ … 8 marcos, de 2015 a hoje ],",
+            "  \"membros\": [ … 4 da diretoria ],",
+            "  \"numeros\": [ … ],",
+            "  \"textos\": { … }",
+            "}",
+          ],
+        },
+      },
+    ],
   },
   {
     id: 'torra',
     name: 'TORRA',
     year: 2026,
     kind: 'conceito próprio',
-    layout: 'vitrine',
+    layout: 'celular',
     city: 'Palmas, TO',
     delivered: 'feito em 2026',
     url: 'https://torra-cafe.pages.dev',
@@ -214,6 +324,10 @@ export const projects: Project[] = [
       repo: github,
       repoNote: 'o Coado ainda é privado',
     },
+    mainLabel: 'site',
+    views: [
+      { id: 'cardapio', label: 'cardápio', caption: 'Cardápio com carrinho e pedido que chega pronto no WhatsApp.', prints: inside('torra', 'cardapio') },
+    ],
   },
   {
     id: 'cleane',
@@ -242,6 +356,8 @@ export const projects: Project[] = [
       repo: github,
       repoNote: 'código privado, projeto de cliente',
     },
+    mainLabel: 'site',
+    views: [],
   },
 ]
 

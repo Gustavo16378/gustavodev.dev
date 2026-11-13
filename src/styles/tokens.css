@@ -14,7 +14,7 @@
   --c-stewer: #8f7f49;
   --c-arte-bg: #0d2119;
   --c-arte: #4fc48e;
-  --c-capi-bg: #1b1a0d;
+  --c-capi-bg: #241a06;
   --c-capi: #d9b648;
   --c-torra-bg: #2a1b12;
   --c-torra: #d8843a;
@@ -36,6 +36,9 @@
 
   /* frame dos projetos: borda de 1px na cor do ambiente e sombra suave */
   --frame-edge: color-mix(in srgb, var(--accent) 55%, transparent);
+  /* fundo da tela "api" dentro dos frames */
+  --c-terminal: #070a08;
+
   /* pé do print escurecido quando o nome fica por cima */
   --scrim: color-mix(in srgb, #000 78%, transparent);
   --shadow-text: 0 2px 18px rgb(0 0 0 / 0.65), 0 1px 3px rgb(0 0 0 / 0.5);

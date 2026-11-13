@@ -15,13 +15,27 @@ interface PlaqueProps {
   onMotion?: () => void
   blockRef?: Ref<HTMLDivElement>
   className?: string
+  /** Tela por dentro aberta (null: a principal). */
+  active?: string | null
+  onView?: (id: string | null) => void
 }
 
 /**
  * Texto do projeto. Cada filho direto entra e sai em stagger (controlado pelo palco da seção).
  * Os dois links são botões de verdade: 44px de altura, magnéticos.
  */
-export function Plaque({ project, onSheet, overlay = false, shadow = false, center = false, onMotion, blockRef, className = '' }: PlaqueProps) {
+export function Plaque({
+  project,
+  onSheet,
+  overlay = false,
+  shadow = false,
+  center = false,
+  onMotion,
+  blockRef,
+  className = '',
+  active = null,
+  onView,
+}: PlaqueProps) {
   const liveRef = useRef<HTMLAnchorElement>(null)
   const sheetRef = useRef<HTMLButtonElement>(null)
   useMagnetic(liveRef)
@@ -80,6 +94,43 @@ export function Plaque({ project, onSheet, overlay = false, shadow = false, cent
           </button>
         )}
       </div>
+      {project.views.length > 0 && onView && (
+        <div className={`mt-3 md:mt-5 ${center ? 'flex flex-col items-center' : ''}`}>
+          <div
+            role="group"
+            aria-label={`${project.name} por dentro`}
+            className={`flex flex-wrap items-center gap-1.5 font-mono text-[11px] md:gap-2 md:text-xs ${center ? 'justify-center' : ''}`}
+          >
+            <span className="mr-1 text-muted" style={textShadow}>
+              por dentro
+            </span>
+            {[{ id: null as string | null, label: project.mainLabel }, ...project.views].map((v) => {
+              const on = v.id === active
+              return (
+                <button
+                  key={v.id ?? 'principal'}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => !on && onView(v.id)}
+                  className="inline-flex min-h-9 items-center rounded-full px-3 transition-[background-color,color] duration-200"
+                  style={
+                    on
+                      ? { backgroundColor: 'var(--accent)', color: 'var(--c-bg)', border: '1px solid var(--accent)' }
+                      : { border: '1px solid color-mix(in srgb, var(--accent) 55%, transparent)', backgroundColor: 'var(--button-ghost)' }
+                  }
+                >
+                  {v.label}
+                </button>
+              )
+            })}
+          </div>
+          {!overlay && (
+            <p aria-live="polite" className="mt-2 hidden min-h-[2.6em] max-w-[34ch] text-sm leading-snug text-muted md:block" style={textShadow}>
+              {project.views.find((v) => v.id === active)?.caption ?? ''}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
