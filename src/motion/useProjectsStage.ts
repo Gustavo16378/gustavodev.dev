@@ -33,6 +33,8 @@ export interface StageEls {
    */
   backdrop?: HTMLElement | null
   backdropWipe?: HTMLElement | null
+  /** Camada de cada frame que gira em Y (câmera na troca e virada da tela por dentro). */
+  flips?: HTMLElement[]
 }
 
 interface Options {
@@ -154,6 +156,8 @@ export function useProjectsStage(
       gsap.set(wipes, { xPercent: -100, backgroundColor: projects[0].background })
       gsap.set(els.glow, { '--glow': projects[0].accent })
 
+      gsap.set(els.content, { scale: 1, transformOrigin: '50% 50%' })
+      if (els.flips?.length) gsap.set(els.flips, { rotationY: 0, transformPerspective: 1400, transformOrigin: '50% 50%' })
       const tl = gsap.timeline({ paused: true, onUpdate: syncRing })
       tl.addLabel(label(0), 0)
 
@@ -199,6 +203,22 @@ export function useProjectsStage(
           { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: 'power2.out', immediateRender: false },
           t + 0.5,
         )
+        // Câmera: o palco recua e volta, e os frames giram um pouco na direção da viagem, alternando o lado.
+        if (!reduced) {
+          tl.to(
+            els.content,
+            { keyframes: [{ scale: desktop ? 0.93 : 0.96, duration: STEP * 0.42 }, { scale: 1, duration: STEP * 0.58 }], ease: 'none' },
+            t,
+          )
+          if (els.flips?.length) {
+            const swing = (i % 2 === 0 ? -1 : 1) * (desktop ? 18 : 10)
+            tl.to(
+              els.flips,
+              { keyframes: [{ rotationY: swing, duration: STEP * 0.45 }, { rotationY: 0, duration: STEP * 0.55 }], ease: 'none' },
+              t,
+            )
+          }
+        }
         tl.addLabel(label(i + 1), t + STEP)
       }
       return tl
