@@ -20,7 +20,7 @@ export function LenisProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const reduced = prefersReducedMotion()
     const instance = new Lenis({
-      lerp: reduced ? 1 : 0.1,
+      lerp: reduced ? 1 : 0.13,
       smoothWheel: !reduced,
       wheelMultiplier: 1,
       touchMultiplier: 1.2,
