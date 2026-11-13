@@ -122,18 +122,13 @@ function mobile(id: LayoutKind, vw: number, vh: number, text?: TextBox): Composi
       const desk = { cx: vw / 2, cy: y + deskH(w) / 2, w, rot: 0 }
       return { desk, mob: hidden(vw * 0.3), deskOn: true, mobOn: false, hero: 'desktop', textTop: y + deskH(w) + GAP }
     }
-    case 'vitrine': {
-      // Print do celular (proporção da tela) ocupando a área livre, nome e links sobrepostos embaixo.
+    case 'vitrine':
+    case 'celular': {
+      // Print do celular ocupando a área livre, nome, links e o seletor por cima, no pé dele (com escurecido).
+      // No celular o print de tela de celular só fica legível grande assim: com o texto embaixo ele virava um selo.
       const w = Math.min(vw * 0.84, free * MOB_RATIO)
       const mob = { cx: vw / 2, cy: top + free / 2, w, rot: 0 }
       return { desk: hidden(vw * 0.5), mob, deskOn: false, mobOn: true, hero: 'mobile' }
-    }
-    case 'celular': {
-      // Print do celular grande no centro, texto embaixo.
-      const h = Math.min(vh * 0.56, free - textH - GAP * 1.5)
-      const y = start(h + GAP * 1.5 + textH)
-      const mob = { cx: vw / 2, cy: y + h / 2, w: h * MOB_RATIO, rot: 0 }
-      return { desk: hidden(vw * 0.5), mob, deskOn: false, mobOn: true, hero: 'mobile', textTop: y + h + GAP * 1.5 }
     }
     case 'metade': {
       // Texto em cima, print logo abaixo dos botões; o bloco inteiro centralizado na área livre, dentro da tela.
@@ -196,11 +191,12 @@ export const TEXT_LAYOUT: Record<LayoutKind, TextLayout> = {
     name: 'top-[50%] md:top-[76%]',
   },
   celular: {
-    overlay: { mobile: false, desktop: false },
-    shadow: { mobile: false, desktop: false },
+    overlay: { mobile: true, desktop: false },
+    shadow: { mobile: true, desktop: false },
     center: true,
     className:
-      'inset-x-0 bottom-[4svh] px-6 text-center md:right-auto md:bottom-[72px] md:left-1/2 md:w-[44vw] md:-translate-x-1/2 md:p-0',
+      // Mobile: no pé do print, dentro dele (mesma conta da vitrine). Desktop: centralizado embaixo do celular.
+      'bottom-[calc(64px+4svh)] left-[calc(50vw-min(84vw,(100svh-148px)*0.462)/2+4vw)] right-[calc(50vw-min(84vw,(100svh-148px)*0.462)/2+4vw)] md:right-auto md:bottom-[72px] md:left-1/2 md:w-[44vw] md:-translate-x-1/2 md:p-0 md:text-center',
     name: 'top-[36%] md:top-[36%]',
   },
   metade: {

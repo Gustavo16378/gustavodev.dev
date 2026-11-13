@@ -106,10 +106,10 @@ function Layer({ project, kind, playable, scrim = false, view = null, layerRef, 
           ) : null}
         </div>
       )}
-      {scrim && !view && (
+      {scrim && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[62%]"
           style={{ backgroundImage: 'linear-gradient(to top, var(--scrim), transparent)' }}
         />
       )}
@@ -283,7 +283,7 @@ export function Projects() {
                       kind={kind}
                       playable={plays(p, kind)}
                       view={viewOf(p, i)}
-                      scrim={p.layout === 'vitrine' && TEXT_LAYOUT.vitrine.overlay[policy.desktop ? 'desktop' : 'mobile'] && desk === policy.desktop}
+                      scrim={TEXT_LAYOUT[p.layout].overlay[policy.desktop ? 'desktop' : 'mobile'] && desk === policy.desktop}
                       layerRef={setAt(desk ? 'deskLayers' : 'mobLayers', i)}
                       videoRef={setVideo(p, i, kind)}
                     />
@@ -393,7 +393,7 @@ export function Projects() {
                   onView={(id) => openView(i, id)}
                   overlay={layout.overlay[device]}
                   shadow={layout.shadow[device]}
-                  center={layout.center}
+                  center={layout.center && !layout.overlay[device]}
                   onMotion={p.media === 'video' && policy.posterOnly ? () => stageApi.current.playManually(i) : undefined}
                   blockRef={setAt('texts', i)}
                   className={`absolute z-10 ${layout.className}`}

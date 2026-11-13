@@ -63,6 +63,12 @@ export function Plaque({
           {project.line}
         </p>
       )}
+      {overlay && (
+        // Por cima do print, só no celular: uma linha curta do que é (no desktop o nome basta).
+        <p className="mt-1.5 line-clamp-2 text-[15px] leading-snug text-bone md:hidden" style={textShadow}>
+          {project.line}
+        </p>
+      )}
       {!overlay && (
         <p className="mt-2 font-mono text-[11px] text-muted md:mt-3 md:text-xs" style={textShadow}>
           {project.stack.join(' · ')}
@@ -99,9 +105,9 @@ export function Plaque({
           <div
             role="group"
             aria-label={`${project.name} por dentro`}
-            className={`flex flex-wrap items-center gap-1.5 font-mono text-[11px] md:gap-2 md:text-xs ${center ? 'justify-center' : ''}`}
+            className={`no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 font-mono text-[11px] md:mx-0 md:flex-wrap md:gap-2 md:overflow-visible md:px-0 md:text-xs ${center ? 'md:justify-center' : ''}`}
           >
-            <span className="mr-1 text-muted" style={textShadow}>
+            <span className="mr-1 shrink-0 text-muted" style={textShadow}>
               por dentro
             </span>
             {[{ id: null as string | null, label: project.mainLabel }, ...project.views].map((v) => {
@@ -112,7 +118,7 @@ export function Plaque({
                   type="button"
                   aria-pressed={on}
                   onClick={() => !on && onView(v.id)}
-                  className="inline-flex min-h-9 items-center rounded-full px-3 transition-[background-color,color] duration-200"
+                  className="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 transition-[background-color,color] duration-200"
                   style={
                     on
                       ? { backgroundColor: 'var(--accent)', color: 'var(--c-bg)', border: '1px solid var(--accent)' }

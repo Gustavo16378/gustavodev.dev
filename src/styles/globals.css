@@ -141,3 +141,11 @@ html.has-cursor * {
     animation: none;
   }
 }
+
+/* Linha que rola de lado no celular sem mostrar barra. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
