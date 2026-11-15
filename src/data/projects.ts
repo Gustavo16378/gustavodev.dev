@@ -225,7 +225,7 @@ export const projects: Project[] = [
     videos: videos('capi'),
     sheet: {
       architecture:
-        'PWA em React e TypeScript feito no HackaRun 2026, no tema da jornada de compra digital e física do shopping. A Capi, assistente de IA, acha o produto nas lojas a partir de texto, foto ou link, e o cliente reserva e retira na loja. Tem mapa interativo do shopping, carteira com níveis de fidelidade, painel do lojista e painel do shopping, com API em Cloudflare Pages Functions e D1. Equipe Tyranitar, de quatro pessoas: fiquei no design e no desenvolvimento. Ficamos em 2º lugar entre 46 equipes.',
+        'PWA em React e TypeScript feito no HackaRun 2026, no tema da jornada de compra digital e física do shopping. A Capi, assistente de IA, acha o produto nas lojas a partir de texto, foto ou link, e o cliente reserva e retira na loja. Tem mapa interativo do shopping, carteira com níveis de fidelidade, painel do lojista e painel do shopping, com API em Cloudflare Pages Functions e D1. Equipe Tyranitar: eu, Gustavo Ferreira Lima, Kauã Afra Pereira Brito e Diogo da Silva Freitas, com orientação de Haroldo Soares e Paulo Rafael. Fiquei no design e no desenvolvimento. Ficamos em 2º lugar entre 46 equipes.',
       decisions: [
         'A arquitetura do site da ONG reaproveitada (Pages Functions e D1) pra ter tudo no ar em três dias.',
         'Design system com animações em GSAP aplicado no front, que foi a tecnologia sorteada pra equipe.',
