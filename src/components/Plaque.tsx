@@ -110,7 +110,7 @@ export function Plaque({
           <div
             role="group"
             aria-label={`${project.name} por dentro`}
-            className={`no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 font-mono text-[11px] md:mx-0 md:flex-wrap md:gap-2 md:overflow-visible md:px-0 md:text-xs ${center ? 'md:justify-center' : ''}`}
+            className={`flex flex-wrap items-center gap-1.5 font-mono text-[11px] md:gap-2 md:text-xs ${center ? 'justify-center' : ''}`}
           >
             <span className="mr-1 shrink-0 text-muted" style={textShadow}>
               por dentro
@@ -123,7 +123,7 @@ export function Plaque({
                   type="button"
                   aria-pressed={on}
                   onClick={() => !on && onView(v.id)}
-                  className="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 transition-[background-color,color] duration-200"
+                  className="inline-flex min-h-9 shrink-0 items-center rounded-full px-2.5 transition-[background-color,color] duration-200 md:px-3"
                   style={
                     on
                       ? { backgroundColor: 'var(--accent)', color: 'var(--c-bg)', border: '1px solid var(--accent)' }
