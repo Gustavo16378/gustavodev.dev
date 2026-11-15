@@ -231,7 +231,7 @@ export const projects: Project[] = [
         'Design system com animações em GSAP aplicado no front, que foi a tecnologia sorteada pra equipe.',
         'Contas de demonstração de cliente, lojista e shopping, pra quem avalia testar os três lados sem cadastro.',
       ],
-      repo: { label: 'github', url: 'https://github.com/Gustavo16378/tyranitar-capim-dourado' },
+      repo: { label: 'github', url: 'https://github.com/Gustavo16378/capi-capim-dourado' },
     },
     mainLabel: 'app',
     views: [
