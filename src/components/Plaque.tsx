@@ -74,7 +74,12 @@ export function Plaque({
           {project.stack.join(' · ')}
         </p>
       )}
-      <div className={`mt-4 flex flex-wrap items-center gap-3 font-mono text-xs md:mt-7 md:text-sm ${center ? 'justify-center' : ''}`}>
+      <div
+        className={`mt-4 flex items-center font-mono text-xs md:mt-7 md:text-sm ${
+          // Por cima do print os dois botões ficam na mesma linha, mais justos: empilhados eles subiam o bloco até o meio do print.
+          overlay ? 'flex-nowrap gap-2 [&>*]:whitespace-nowrap [&>*]:px-3.5 md:gap-3 md:[&>*]:px-5' : 'flex-wrap gap-3'
+        } ${center ? 'justify-center' : ''}`}
+      >
         <a
           ref={liveRef}
           href={project.url}

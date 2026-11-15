@@ -109,8 +109,10 @@ function Layer({ project, kind, playable, scrim = false, view = null, layerRef, 
       {scrim && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[62%]"
-          style={{ backgroundImage: 'linear-gradient(to top, var(--scrim), transparent)' }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[78%]"
+          // Escuro de verdade onde o texto fica (os 45% de baixo) e só depois some: em print claro (Capi) um
+          // degradê linear deixava o nome e a descrição brancos em cima de fundo creme, ilegíveis.
+          style={{ backgroundImage: 'linear-gradient(to top, var(--scrim) 0%, var(--scrim) 45%, transparent 100%)' }}
         />
       )}
     </div>
