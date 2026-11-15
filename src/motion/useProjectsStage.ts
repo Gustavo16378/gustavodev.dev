@@ -324,7 +324,10 @@ export function useProjectsStage(
       const velocity = Math.abs(getLenis()?.velocity ?? 0)
       if (!reduced) drift += (DRIFT + velocity * 40 + boost) * dt
       boost *= Math.exp(-2.5 * dt)
+      // Só o nome que aparece (e os vizinhos, que entram numa troca) anda: os outros estão escondidos e mexer
+      // neles a cada quadro era trabalho de estilo e composição jogado fora, que no celular pesa.
       els.nameTracks.forEach((_t2, j) => {
+        if (Math.abs(j - current) > 1) return
         const unit = units[j] || vw
         trackX[j](-(((drift % unit) + unit) % unit))
       })
@@ -346,7 +349,8 @@ export function useProjectsStage(
     let loops: gsap.core.Animation[] = []
     if (!reduced) {
       loops = [
-        gsap.to(els.deskFloat, { y: -2.5, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1, paused: true }),
+        // No celular o frame desktop nunca aparece: flutuar ele era animação invisível rodando o tempo todo.
+        ...(desktop ? [gsap.to(els.deskFloat, { y: -2.5, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1, paused: true })] : []),
         gsap.to(els.mobFloat, { y: -2.5, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.5, paused: true }),
         ...els.glints.map((g, i) =>
           gsap.fromTo(
