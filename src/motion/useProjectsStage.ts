@@ -124,13 +124,20 @@ export function useProjectsStage(
       scaleX: r.w / f.baseW,
       scaleY: r.w / f.baseW,
       rotation: r.rot,
-      opacity: on ? 1 : 0,
+      // autoAlpha: com 0 o frame também fica visibility: hidden e sai da pintura (no celular o desktop nunca aparece).
+      autoAlpha: on ? 1 : 0,
     })
     // Borda sempre de 1px na tela, qualquer que seja a escala.
+    // Só reescreve quando muda de verdade: trocar uma variável CSS no frame recalcula o estilo de tudo que está
+    // dentro dele (os prints dos cinco projetos), e isso rodava a cada quadro das trocas.
+    const ringLast = new WeakMap<HTMLElement, string>()
     const syncRing = () => {
       for (const f of frames) {
         const s = Number(gsap.getProperty(f.travel, 'scaleX')) || 1
-        f.travel.style.setProperty('--ring', `${1 / s}px`)
+        const v = `${(1 / s).toFixed(2)}px`
+        if (ringLast.get(f.travel) === v) continue
+        ringLast.set(f.travel, v)
+        f.travel.style.setProperty('--ring', v)
       }
     }
     const kids = (i: number) => Array.from(els.texts[i].children)
@@ -147,9 +154,11 @@ export function useProjectsStage(
       gsap.set(els.deskTravel, frameVars(frames[0], c0.desk, c0.deskOn))
       gsap.set(els.mobTravel, frameVars(frames[1], c0.mob, c0.mobOn))
       for (let j = 0; j < n; j++) {
-        gsap.set([els.deskLayers[j], els.mobLayers[j]], { opacity: j === 0 ? 1 : 0 })
-        gsap.set(els.names[j], { x: 0, opacity: j === 0 ? NAME_OPACITY : 0 })
-        gsap.set(kids(j), { y: 0, opacity: j === 0 ? 1 : 0 })
+        // autoAlpha em vez de opacity: o que está em 0 vira visibility: hidden e o navegador para de pintar e
+        // compor os prints e textos dos outros projetos a cada quadro (era o que mais pesava no celular).
+        gsap.set([els.deskLayers[j], els.mobLayers[j]], { autoAlpha: j === 0 ? 1 : 0 })
+        gsap.set(els.names[j], { x: 0, autoAlpha: j === 0 ? NAME_OPACITY : 0 })
+        gsap.set(kids(j), { y: 0, autoAlpha: j === 0 ? 1 : 0 })
       }
       gsap.set(els.stage, { backgroundColor: projects[0].background })
       if (backdrop) gsap.set(backdrop, { backgroundColor: projects[0].background })
@@ -171,8 +180,8 @@ export function useProjectsStage(
         tl.fromTo(els.deskTravel, frameVars(frames[0], a.desk, a.deskOn), { ...frameVars(frames[0], b.desk, b.deskOn), ...move }, t)
         tl.fromTo(els.mobTravel, frameVars(frames[1], a.mob, a.mobOn), { ...frameVars(frames[1], b.mob, b.mobOn), ...move }, t)
         // Imagem troca no meio da viagem.
-        tl.fromTo([els.deskLayers[i], els.mobLayers[i]], { opacity: 1 }, { opacity: 0, duration: 0.3, ease: 'none', immediateRender: false }, t + 0.35)
-        tl.fromTo([els.deskLayers[i + 1], els.mobLayers[i + 1]], { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'none', immediateRender: false }, t + 0.35)
+        tl.fromTo([els.deskLayers[i], els.mobLayers[i]], { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.3, ease: 'none', immediateRender: false }, t + 0.35)
+        tl.fromTo([els.deskLayers[i + 1], els.mobLayers[i + 1]], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'none', immediateRender: false }, t + 0.35)
         // Varredura diagonal: a cor do próximo cobre a tela; no fim vira o fundo e a camada volta pro lugar.
         tl.fromTo(
           wipes,
@@ -188,19 +197,19 @@ export function useProjectsStage(
         tl.set(els.glow, { '--glow': projects[i + 1].accent }, t + 0.35)
         tl.fromTo(els.glow, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power1.out', immediateRender: false }, t + 0.45)
         // Nome em contorno: o atual sai por um lado, o próximo entra pelo outro.
-        tl.fromTo(els.names[i], { x: 0, opacity: NAME_OPACITY }, { x: -vw * 0.5, opacity: 0, ...move, duration: 0.7 }, t)
-        tl.fromTo(els.names[i + 1], { x: vw * 0.5, opacity: 0 }, { x: 0, opacity: NAME_OPACITY, ...move, duration: 0.8 }, t + 0.3)
+        tl.fromTo(els.names[i], { x: 0, autoAlpha: NAME_OPACITY }, { x: -vw * 0.5, autoAlpha: 0, ...move, duration: 0.7 }, t)
+        tl.fromTo(els.names[i + 1], { x: vw * 0.5, autoAlpha: 0 }, { x: 0, autoAlpha: NAME_OPACITY, ...move, duration: 0.8 }, t + 0.3)
         // Texto: o atual sai pra cima, o próximo entra de baixo, em stagger.
         tl.fromTo(
           kids(i),
-          { y: 0, opacity: 1 },
-          { y: -40, opacity: 0, duration: 0.45, stagger: 0.04, ease: 'power2.out', immediateRender: false },
+          { y: 0, autoAlpha: 1 },
+          { y: -40, autoAlpha: 0, duration: 0.45, stagger: 0.04, ease: 'power2.out', immediateRender: false },
           t,
         )
         tl.fromTo(
           kids(i + 1),
-          { y: 40, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: 'power2.out', immediateRender: false },
+          { y: 40, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.05, ease: 'power2.out', immediateRender: false },
           t + 0.5,
         )
         // Câmera: o palco recua e volta, e os frames giram um pouco na direção da viagem, alternando o lado.
