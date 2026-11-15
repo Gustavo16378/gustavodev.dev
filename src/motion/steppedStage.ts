@@ -441,6 +441,21 @@ export function createSteppedStage(opts: SteppedStageOptions): SteppedStage {
       }
       return
     }
+    // Celular: um flick rápido num aparelho que perde quadros manda poucos eventos de scroll, cada um andando
+    // centenas de pixels. Se entre um e outro a página passou por cima do palco inteiro (o topo dele trocou de
+    // sinal), o dedo atravessou a seção sem ela prender. Prende mesmo assim e o encaixe traz a página de volta.
+    // Só até uma tela e meia de pulo: mais que isso é busca na página ou âncora, que podem passar direto.
+    if (touchStage && Math.abs(dy) < vh * 1.5) {
+      const before = top + dy
+      if (side === 'above' && before > 0 && top < 0) {
+        engage(0)
+        return
+      }
+      if (side === 'below' && before < 0 && top > 0) {
+        engage(n - 1)
+        return
+      }
+    }
     // Palco inteiro fora da tela: é a hora de deixar pronto o passo pelo qual ele vai entrar
     // (o último vindo de baixo, o primeiro vindo de cima), sem ninguém ver a troca.
     // Também é o caso do salto (âncora, tecla End, busca na página) que passou do palco num evento só: não prende.
