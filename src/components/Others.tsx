@@ -325,20 +325,10 @@ export function Others() {
         <h2 ref={titleRef} className="origin-left font-display text-[17vw] leading-[0.84] uppercase will-change-transform md:text-[8vw]">
           Outros no ar
         </h2>
-        <div className="hidden shrink-0 items-center gap-3 pb-[1vw] font-mono text-sm md:flex">
-          <span className="text-muted">
-            <span className="text-acid">{pad(active + 1)}</span> / {pad(n)}
-          </span>
-          <button type="button" aria-label="projeto anterior" onClick={() => go(-1)} disabled={active === 0} className="inline-flex size-11 items-center justify-center rounded-[3px] border border-border text-bone transition-[border-color,color] hover:border-acid hover:text-acid disabled:opacity-30">
-            ←
-          </button>
-          <button type="button" aria-label="próximo projeto" onClick={() => go(1)} disabled={active === n - 1} className="inline-flex size-11 items-center justify-center rounded-[3px] border border-border text-bone transition-[border-color,color] hover:border-acid hover:text-acid disabled:opacity-30">
-            →
-          </button>
-        </div>
       </div>
 
-      <div ref={viewportRef} className="relative mt-10 cursor-grab overflow-hidden py-[5vw] active:cursor-grabbing md:mt-14">
+      <div className="relative mt-10 md:mt-14">
+      <div ref={viewportRef} className="relative cursor-grab overflow-hidden py-[5vw] active:cursor-grabbing">
         <div ref={trackRef} className="flex w-max items-center gap-[4vw] will-change-transform">
           {otherProjects.map((p, i) => (
             <div
@@ -355,9 +345,29 @@ export function Others() {
           ))}
         </div>
       </div>
+        {/* Desktop: as setas ficam nas laterais da faixa, na altura dos cards (no título, lá em cima, ninguém via). */}
+        <button
+          type="button"
+          aria-label="projeto anterior"
+          onClick={() => go(-1)}
+          disabled={active === 0}
+          className="absolute top-1/2 left-[2.5vw] z-10 hidden size-16 -translate-y-1/2 items-center justify-center rounded-full border border-acid bg-bg text-2xl text-acid shadow-[0_8px_30px_rgb(0_0_0/0.5)] transition-[transform,opacity,background-color,color] hover:scale-105 hover:bg-acid hover:text-bg disabled:pointer-events-none disabled:opacity-0 md:inline-flex"
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          aria-label="próximo projeto"
+          onClick={() => go(1)}
+          disabled={active === n - 1}
+          className="absolute top-1/2 right-[2.5vw] z-10 hidden size-16 -translate-y-1/2 items-center justify-center rounded-full border border-acid bg-bg text-2xl text-acid shadow-[0_8px_30px_rgb(0_0_0/0.5)] transition-[transform,opacity,background-color,color] hover:scale-105 hover:bg-acid hover:text-bg disabled:pointer-events-none disabled:opacity-0 md:inline-flex"
+        >
+          →
+        </button>
+      </div>
 
-      <div className="mt-3 flex items-center justify-between gap-4 px-6 md:hidden">
-        <button type="button" aria-label="projeto anterior" onClick={() => go(-1)} disabled={active === 0} className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
+      <div className="mt-3 flex items-center justify-between gap-4 px-6 md:mt-5 md:justify-center">
+        <button type="button" aria-label="projeto anterior" onClick={() => go(-1)} disabled={active === 0} className="inline-flex size-12 md:hidden shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
           ←
         </button>
         <div className="flex flex-col items-center gap-2">
@@ -367,10 +377,10 @@ export function Others() {
             ))}
           </div>
           <span className="font-mono text-[11px] text-muted">
-            <span className="text-acid">{pad(active + 1)}</span> / {pad(n)} · arrasta pro lado
+            <span className="text-acid">{pad(active + 1)}</span> / {pad(n)} · arrasta pro lado<span className="hidden md:inline"> ou usa as setas</span>
           </span>
         </div>
-        <button type="button" aria-label="próximo projeto" onClick={() => go(1)} disabled={active === n - 1} className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
+        <button type="button" aria-label="próximo projeto" onClick={() => go(1)} disabled={active === n - 1} className="inline-flex size-12 md:hidden shrink-0 items-center justify-center rounded-full border border-acid text-lg text-acid disabled:border-border disabled:text-muted disabled:opacity-40">
           →
         </button>
       </div>
